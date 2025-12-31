@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 .draggable-area {
-  -webkit-app-region: drag; 
+  -webkit-app-region: drag;
 }
 
 .draggable-area button, 
