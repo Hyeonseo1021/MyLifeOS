@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow} from 'electron'
 import path from 'path'
 
 process.env.DIST = path.join(__dirname, '../dist')
@@ -22,7 +22,7 @@ function createWindow() {
 
   if (VITE_DEV_SERVER_URL) { 
     win.loadURL(VITE_DEV_SERVER_URL)
-    win.webContents.openDevTools() 
+    win.webContents.openDevTools({ mode: 'detach' })
   } else {
     win.loadFile(path.join(process.env.DIST || '', 'index.html'))
   }

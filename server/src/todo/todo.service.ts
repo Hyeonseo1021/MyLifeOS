@@ -11,8 +11,8 @@ export class TodoService {
     return this.todoModel.find().sort({ createdAt: -1 }).exec();
   }
 
-  async create(text: string): Promise<Todo> {
-    const newTodo = new this.todoModel({ text });
+  async create(text: string, date: string): Promise<Todo> {
+    const newTodo = new this.todoModel({ text, date });
     return newTodo.save();
   }
 

@@ -7,7 +7,7 @@ export class WeatherService {
 
   async getWeather(lat: number, lon: number) {
     try {
-      const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&lang=kr&appid=${this.weatherApiKey}`;
+      const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&lang=kr&units=metric&appid=${this.weatherApiKey}`;
       const { data } = await axios.get(url);
       
       return {
