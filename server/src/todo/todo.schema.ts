@@ -13,6 +13,11 @@ export class Todo {
     text: string;
 
     @Prop({
+        required: true
+    })
+    date: string;
+
+    @Prop({
         default: false
     })
     done: boolean;   

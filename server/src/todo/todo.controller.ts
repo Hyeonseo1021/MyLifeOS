@@ -11,8 +11,8 @@ export class TodoController {
   }
 
   @Post()
-  create(@Body() body: { text: string }) {
-    return this.todoService.create(body.text);
+  create(@Body() body: { text: string, date: string}) {
+    return this.todoService.create(body.text, body.date);
   }
 
   @Patch(':id')
