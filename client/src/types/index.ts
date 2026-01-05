@@ -10,14 +10,30 @@ export interface TodoItem {
   date: string;
 }
 
+export interface WeatherData {
+  temp: number;
+  condition: string;
+  humidity: number;
+  min: number;
+  max: number;
+  location: string;
+}
+
 export interface CreateTodoDto {
   text: string;
   done: boolean;
   date: string;
 }
 
+export interface ChatSession {
+  id: string;
+  title: string;
+  updatedAt: string;
+}
+
 export interface ChatMessage {
-  id: number;
-  text: string;
-  sender: 'user' | 'ai';
+  id: string;
+  role: 'user' | 'assistant' | 'system'; 
+  content: string;
+  timestamp: Date;
 }

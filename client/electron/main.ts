@@ -8,8 +8,8 @@ const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1600,
-    height: 1000,
+    width: 2000,
+    height: 1200,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
