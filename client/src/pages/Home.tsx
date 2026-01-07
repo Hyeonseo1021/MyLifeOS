@@ -1,7 +1,7 @@
 import { useState, useEffect, type KeyboardEvent, type MouseEvent } from 'react';
 import { api } from '../api'; 
 import InteractiveCalendar from '../components/InteractiveCalendar';
-import { useAgentSystem } from '../hooks/useAgentSystem'; // 에이전트 훅 import
+import { useAiSystem } from '../hooks/useAiSystem'; // 에이전트 훅 import
 import { getYMD, formatTime, formatDate } from '../utils/date';
 import type { WeatherData } from '../api/weather';
 import type { TodoItem, AiState } from '../types';
@@ -17,7 +17,7 @@ export default function Home({ setAiState }: HomeProps) {
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [weather, setWeather] = useState<WeatherData | null>(null);
 
-  const { displayedText, agentStatus } = useAgentSystem(weather, todos);
+  const { displayedText, aiStatus } = useAiSystem(weather, todos);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -95,14 +95,14 @@ export default function Home({ setAiState }: HomeProps) {
 
   const getStatusLabel = (status: string) => {
     switch(status) {
-        case 'ANALYZING': return { text: 'DATA ANALYZING...', color: 'text-blue-500' };
-        case 'FETCHING_NEWS': return { text: 'CRAWLING NEWS...', color: 'text-orange-500' };
-        case 'SYNTHESIZING': return { text: 'GENERATING BRIEF...', color: 'text-purple-500' };
-        case 'COMPLETED': return { text: 'BRIEFING READY', color: 'text-green-500' };
-        default: return { text: 'SYSTEM IDLE', color: 'text-neutral-600' };
+        case 'ANALYZING': return { text: 'ANALYZING DATA...', color: 'text-blue-500' };
+        case 'GENERATING': return { text: 'GENERATING BRIEF...', color: 'text-purple-500' }; // 변경됨
+        case 'COMPLETED': return { text: 'SYSTEM ONLINE', color: 'text-green-500' };
+        case 'ERROR': return { text: 'CONNECTION LOST', color: 'text-red-500' }; // 추가됨
+        default: return { text: 'STANDBY', color: 'text-neutral-600' };
     }
   };
-  const statusInfo = getStatusLabel(agentStatus);
+  const statusInfo = getStatusLabel(aiStatus);
 
   return (
     <div className="flex-1 p-6 grid grid-rows-[auto_auto_1fr] gap-4 overflow-hidden non-draggable">
@@ -152,7 +152,7 @@ export default function Home({ setAiState }: HomeProps) {
                 <h3 className="text-[14px] font-bold uppercase tracking-widest mb-4 flex justify-between shrink-0 items-center">
                     <span className="text-neutral-500">Daily BRIEFING</span>
                     <span className={`text-[12px] border border-neutral-800 px-2 py-0.5 rounded flex items-center gap-2 ${statusInfo.color} animate-pulse`}>
-                        {agentStatus !== 'COMPLETED' && agentStatus !== 'IDLE' && (
+                        {aiStatus !== 'COMPLETED' && aiStatus !== 'IDLE' && (
                              <svg className="animate-spin h-2 w-2" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
                         )}
                         {statusInfo.text}
@@ -178,16 +178,14 @@ export default function Home({ setAiState }: HomeProps) {
                 {/* Agent Signature */}
                 <div className="mt-4 pt-4 border-t border-neutral-800/50 flex gap-4 text-[10px] text-neutral-600 font-mono uppercase">
                     <div className="flex items-center gap-1">
-                        <div className={`w-1.5 h-1.5 rounded-full ${weather ? 'bg-green-500' : 'bg-neutral-600'}`}></div>
-                        Weather Agent
+                        <div className={`w-1.5 h-1.5 rounded-full ${aiStatus === 'COMPLETED' ? 'bg-green-500' : 'bg-neutral-600'}`}></div>
+                        System Intelligence
                     </div>
                     <div className="flex items-center gap-1">
-                        <div className={`w-1.5 h-1.5 rounded-full ${todos.length > 0 ? 'bg-green-500' : 'bg-neutral-600'}`}></div>
-                        Task Manager
+                        <span className="text-neutral-700">|</span>
                     </div>
                     <div className="flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></div>
-                        News Crawler
+                        Powered by LangChain
                     </div>
                 </div>
             </div>

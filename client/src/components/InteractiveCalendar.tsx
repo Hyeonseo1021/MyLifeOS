@@ -32,7 +32,6 @@ export default function InteractiveCalendar({ selectedDate, onSelectDate, todos 
     const isSunday = dayOfWeek === 0;
 
     days.push(
-      // ▼▼▼ [수정됨] aspect-square 제거 (높이 강제 늘어남 방지) ▼▼▼
       <div key={i} className="relative group w-full h-full" onClick={() => onSelectDate(currentDate)}>
         
         <div className={`
