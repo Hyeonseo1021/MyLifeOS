@@ -1,16 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from '@langchain/core/prompts';
+import { TavilySearch } from "@langchain/tavily";
+
 
 @Injectable()
 export class AiService {
   private model: ChatOpenAI;
+  private searchTool: TavilySearch;
 
   constructor() {
     this.model = new ChatOpenAI({
       modelName: 'gpt-3.5-turbo',
       temperature: 0.7,
       openAIApiKey: process.env.OPENAI_API_KEY,
+    });
+    this.searchTool = new TavilySearch({
+      maxResults: 5,
+      topic: 'news',
     });
   }
 
@@ -64,7 +71,7 @@ export class AiService {
 
       [브리핑 메시지]:
     `);
-
+    
     const chain = prompt.pipe(this.model);
     
     const result = await chain.invoke({
@@ -75,5 +82,49 @@ export class AiService {
     });
 
     return result.content as string;
+  }
+
+  async getIssues(): Promise<any[]> {
+    try {
+      const rawResponse = await this.searchTool.invoke({
+        query: "최신 IT 인공지능 기술 뉴스"
+      });
+      
+      let parsedData;
+      if (typeof rawResponse === 'string') {
+        try {
+          parsedData = JSON.parse(rawResponse);
+        } catch (e) {
+          return [];
+        }
+      } else {
+        parsedData = rawResponse;
+      }
+
+      let items: any[] = [];
+
+      if (Array.isArray(parsedData)) {
+        items = parsedData;
+      } else if (parsedData && Array.isArray(parsedData.results)) {
+        items = parsedData.results;
+      } else if (parsedData && typeof parsedData === 'object') {
+        items = Object.values(parsedData);
+      }
+
+      if (!Array.isArray(items)) {
+        console.log("뉴스 데이터 형식이 배열이 아님:", parsedData); 
+        return [];
+      }
+
+      return items.map((item: any) => ({
+        title: item.title || item.content?.slice(0, 50) + "..." || "제목 없음",
+        url: item.url || "#",
+        category: 'TECH'
+      }));
+
+    } catch (error) {
+      console.error("News Error:", error);
+      return [];
+    }
   }
 }

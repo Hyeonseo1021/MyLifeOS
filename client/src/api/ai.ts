@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { WeatherData, TodoItem } from '../types';
+import type { WeatherData, TodoItem, IssueItem } from '../types';
 
 const BASE_URL = 'http://localhost:3000'; 
 
@@ -11,4 +11,8 @@ export const aiApi = {
     });
     return response.data;
   },
+  getIssues: async () => {
+    const response = await axios.post<{ issues: IssueItem[] }>(`${BASE_URL}/ai/issue`);
+    return response.data.issues;
+  }
 };

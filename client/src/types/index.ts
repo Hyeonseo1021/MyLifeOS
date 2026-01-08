@@ -1,3 +1,5 @@
+
+
 // src/types/index.ts
 
 export type TabType = 'HOME' | 'MLO' | 'MEMORY' | 'SETTINGS';
@@ -36,4 +38,10 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system'; 
   content: string;
   timestamp: Date;
+}
+
+export interface IssueItem {
+  title: string;
+  url: string;
+  category: string;
 }
