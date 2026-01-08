@@ -1,10 +1,10 @@
 import { useState, useEffect, type KeyboardEvent, type MouseEvent } from 'react';
 import { api } from '../api'; 
 import InteractiveCalendar from '../components/InteractiveCalendar';
-import { useAiSystem } from '../hooks/useAiSystem'; // 에이전트 훅 import
+import { useAiSystem } from '../hooks/useAiSystem';
 import { getYMD, formatTime, formatDate } from '../utils/date';
 import type { WeatherData } from '../api/weather';
-import type { TodoItem, AiState } from '../types';
+import type { TodoItem, AiState, IssueItem } from '../types';
 
 interface HomeProps {
   setAiState: (state: AiState) => void;
@@ -16,6 +16,8 @@ export default function Home({ setAiState }: HomeProps) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [weather, setWeather] = useState<WeatherData | null>(null);
+
+  const [issues, setIssues] = useState<IssueItem[]>([]);
 
   const { displayedText, aiStatus } = useAiSystem(weather, todos);
 
@@ -37,6 +39,18 @@ export default function Home({ setAiState }: HomeProps) {
   }, []);
 
   useEffect(() => { loadTodos(); }, []);
+
+  useEffect(() => {
+    const fetchIssues = async () => {
+      try {
+        const data = await api.ai.getIssues();
+        setIssues(data);
+      } catch (error) {
+        console.error("Failed to load issues:", error);
+      }
+    };
+    fetchIssues();
+  }, []);
 
   const loadTodos = async () => {
     try {
@@ -96,9 +110,9 @@ export default function Home({ setAiState }: HomeProps) {
   const getStatusLabel = (status: string) => {
     switch(status) {
         case 'ANALYZING': return { text: 'ANALYZING DATA...', color: 'text-blue-500' };
-        case 'GENERATING': return { text: 'GENERATING BRIEF...', color: 'text-purple-500' }; // 변경됨
+        case 'GENERATING': return { text: 'GENERATING BRIEF...', color: 'text-purple-500' }; 
         case 'COMPLETED': return { text: 'SYSTEM ONLINE', color: 'text-green-500' };
-        case 'ERROR': return { text: 'CONNECTION LOST', color: 'text-red-500' }; // 추가됨
+        case 'ERROR': return { text: 'CONNECTION LOST', color: 'text-red-500' }; 
         default: return { text: 'STANDBY', color: 'text-neutral-600' };
     }
   };
@@ -143,7 +157,7 @@ export default function Home({ setAiState }: HomeProps) {
         </div>
 
         {/* 2. Middle Row */}
-        <div className="grid grid-cols-2 gap-4 h-[500px] shrink-0">
+        <div className="grid grid-cols-2 gap-4 h-[380px] shrink-0">
             
             <div className="bg-neutral-900/20 border border-neutral-800 p-6 relative overflow-hidden flex flex-col group transition-colors hover:border-neutral-700">
                 <div className="absolute top-0 left-0 w-1 h-full bg-white transition-all duration-500 group-hover:bg-blue-500"></div>
@@ -152,9 +166,10 @@ export default function Home({ setAiState }: HomeProps) {
                 <h3 className="text-[14px] font-bold uppercase tracking-widest mb-4 flex justify-between shrink-0 items-center">
                     <span className="text-neutral-500">Daily BRIEFING</span>
                     <span className={`text-[12px] border border-neutral-800 px-2 py-0.5 rounded flex items-center gap-2 ${statusInfo.color} animate-pulse`}>
-                        {aiStatus !== 'COMPLETED' && aiStatus !== 'IDLE' && (
+                        {/* ▼▼▼ [수정됨] 문법 오류 해결: && 대신 ? : 구문 사용 ▼▼▼ */}
+                        {(aiStatus !== 'COMPLETED' && aiStatus !== 'IDLE') ? (
                              <svg className="animate-spin h-2 w-2" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                        )}
+                        ) : null}
                         {statusInfo.text}
                     </span>
                 </h3>
@@ -204,16 +219,30 @@ export default function Home({ setAiState }: HomeProps) {
         <div className="grid grid-cols-2 gap-4 min-h-0">
             {/* Issues */}
             <div className="bg-neutral-900/20 border border-neutral-800 p-5 flex flex-col min-h-0">
-                <h3 className="text-[12px] text-neutral-500 font-bold uppercase tracking-widest mb-4">오늘의 이슈</h3>
+                <h3 className="text-[12px] text-neutral-500 font-bold uppercase tracking-widest mb-4">오늘의 이슈 (Tavily)</h3>
+                
                 <ul className="space-y-3 overflow-y-auto scrollbar-hide">
-                    <li className="text-xs text-neutral-400 flex justify-between cursor-pointer hover:text-white transition-colors">
-                        <span className="truncate w-3/4">1. React 19 정식 출시</span>
-                        <span className="text-neutral-600">개발</span>
-                    </li>
-                    <li className="text-xs text-neutral-400 flex justify-between cursor-pointer hover:text-white transition-colors">
-                        <span className="truncate w-3/4">2. Apple M4 칩 성능 유출</span>
-                        <span className="text-neutral-600">테크</span>
-                    </li>
+                    {issues.length > 0 ? (
+                        issues.map((item, idx) => (
+                            <li key={idx} 
+                                onClick={() => window.open(item.url, '_blank')}
+                                className="text-xs text-neutral-400 flex justify-between cursor-pointer hover:text-white transition-colors group">
+                                <span className="truncate w-3/4 group-hover:underline">
+                                    {idx + 1}. {item.title}
+                                </span>
+                                <span className="text-neutral-600 text-[10px] border border-neutral-800 px-1 rounded">
+                                    {item.category}
+                                </span>
+                            </li>
+                        ))
+                    ) : (
+                        [1, 2, 3].map((i) => (
+                            <li key={i} className="flex justify-between items-center animate-pulse">
+                                <div className="h-3 bg-neutral-800 rounded w-2/3"></div>
+                                <div className="h-3 bg-neutral-800 rounded w-10"></div>
+                            </li>
+                        ))
+                    )}
                 </ul>
             </div>
 
