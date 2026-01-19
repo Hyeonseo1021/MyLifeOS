@@ -14,5 +14,11 @@ export const aiApi = {
   getIssues: async () => {
     const response = await axios.post<{ issues: IssueItem[] }>(`${BASE_URL}/ai/issue`);
     return response.data.issues;
+  },
+  chat: async (message: string) => {
+    const response = await axios.post<{ reply: string, logs: any[] }>(`${BASE_URL}/ai/chat`, {
+      message,
+    });
+    return response.data;
   }
 };

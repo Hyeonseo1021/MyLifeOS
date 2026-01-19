@@ -3,7 +3,7 @@ import axios from 'axios';
 
 @Injectable()
 export class WeatherService {
-  private readonly weatherApiKey = '7e83a92a200eaef2257cd434ccf9e5c9'; // 현서님 키
+  private readonly weatherApiKey = '7e83a92a200eaef2257cd434ccf9e5c9'; 
 
   async getWeather(lat: number, lon: number) {
     try {

@@ -21,8 +21,9 @@
   },
   "dependencies": {
     "@langchain/community": "^1.1.2",
-    "@langchain/core": "^1.1.11",
-    "@langchain/openai": "^1.2.1",
+    "@langchain/core": "^1.1.15",
+    "@langchain/mongodb": "^1.1.0",
+    "@langchain/openai": "^1.2.2",
     "@langchain/tavily": "^1.2.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
@@ -32,6 +33,7 @@
     "axios": "^1.13.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
+    "mongodb": "^7.0.0",
     "mongoose": "^9.1.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"

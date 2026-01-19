@@ -1,11 +1,5 @@
 import { useEffect, useRef } from 'react';
-
-export interface LogEntry {
-  id: number;
-  timestamp: Date;
-  level: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR';
-  message: string;
-}
+import type { LogEntry } from '../types'; // [수정] 중앙 타입 import
 
 interface SystemLogProps {
   logs: LogEntry[];
@@ -19,7 +13,8 @@ export default function SystemLog({ logs }: SystemLogProps) {
   }, [logs]);
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    // date가 혹시 문자열로 올 경우를 대비해 new Date()로 감쌉니다.
+    return new Date(date).toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
   const getColor = (level: string) => {
@@ -57,6 +52,11 @@ export default function SystemLog({ logs }: SystemLogProps) {
           </div>
         ))}
         <div ref={bottomRef} />
+      </div>
+
+      <div className="px-3 py-1.5 border-t border-neutral-800 bg-neutral-950 flex justify-between text-[10px] text-neutral-600">
+        <span>MEM: 24MB</span>
+        <span>LATENCY: 12ms</span>
       </div>
     </div>
   );

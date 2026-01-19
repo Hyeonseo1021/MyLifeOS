@@ -27,17 +27,24 @@ export interface CreateTodoDto {
   date: string;
 }
 
-export interface ChatSession {
-  id: string;
-  title: string;
-  updatedAt: string;
+export interface ChatMessage {
+  id: number; 
+  role: 'user' | 'ai' | 'system'; 
+  text: string; 
 }
 
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant' | 'system'; 
-  content: string;
+
+export interface LogEntry {
+  id: number;
   timestamp: Date;
+  level: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR';
+  message: string;
+}
+
+
+export interface AiChatResponse {
+  reply: string;
+  logs?: LogEntry[]; 
 }
 
 export interface IssueItem {

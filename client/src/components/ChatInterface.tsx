@@ -1,22 +1,20 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
-
-interface Message {
-  id: number;
-  role: 'user' | 'ai' | 'system';
-  text: string;
-}
+import { api } from '../api'; // API 모듈 연결
+import type { ChatMessage, LogEntry } from '../types'; // [수정] 중앙 타입 import
 
 interface ChatInterfaceProps {
   onActivity?: (type: 'send' | 'receive') => void;
+  onLogs?: (logs: any[]) => void; // 백엔드에서 온 날것의 로그를 부모에게 전달
 }
 
-export default function ChatInterface({ onActivity }: ChatInterfaceProps) {
+export default function ChatInterface({ onActivity, onLogs }: ChatInterfaceProps) {
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 2, role: 'ai', text: '안녕하세요, 현서님. 무엇을 도와드릴까요?\n일정 추가, 문서 검색, 일상 대화가 가능합니다.' }
+  // 타입 변경: Message -> ChatMessage
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { id: 1, role: 'ai', text: '안녕하세요, 현서님. MyLifeOS AI입니다. 무엇을 도와드릴까요?' }
   ]);
 
   useEffect(() => {
@@ -32,22 +30,30 @@ export default function ChatInterface({ onActivity }: ChatInterfaceProps) {
 
     if (onActivity) onActivity('send');
 
+    // 1. 사용자 메시지 표시
     setMessages(prev => [...prev, { id: Date.now(), role: 'user', text: userText }]);
 
-    setTimeout(() => {
-      let responseText = "명령을 확인했습니다.";
+    try {
+      // 2. 백엔드 API 호출
+      // api/index.ts에서 정의한 chat 함수 호출
+      const data = await api.ai.chat(userText); 
       
-      if (userText.includes("일정") || userText.includes("추가")) {
-        responseText = "📅 To-Do List에 해당 일정을 추가할까요? (백엔드 연결 대기 중)";
-      } else if (userText.includes("리액트") || userText.includes("찾아")) {
-        responseText = "🔍 RAG 시스템을 통해 문서를 검색하고 있습니다... (구현 예정)";
+      // 3. 응답 표시
+      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: data.reply }]);
+
+      // 4. 로그 전달 (부모 컴포넌트인 Mlo.tsx로)
+      if (data.logs && onLogs) {
+        onLogs(data.logs);
       }
-
-      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: responseText }]);
-      setIsProcessing(false);
-
+      
       if (onActivity) onActivity('receive');
-    }, 1000);
+
+    } catch (error) {
+      console.error(error);
+      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'system', text: 'Error: 서버 연결에 실패했습니다.' }]);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
