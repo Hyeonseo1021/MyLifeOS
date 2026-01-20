@@ -7,6 +7,5 @@ export const api = {
   todo: todoApi,
   weather: weatherApi,
   ai: aiApi,
-  // mlo: mloApi,
   // memory: memoryApi,
 };

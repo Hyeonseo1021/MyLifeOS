@@ -3,6 +3,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Todo, TodoDocument } from './todo.schema';
 
+interface CreateTodoData {
+  text: string;
+  date: string;
+  done: boolean;
+}
+
 @Injectable()
 export class TodoService {
   constructor(@InjectModel(Todo.name) private todoModel: Model<TodoDocument>) {}
@@ -11,8 +17,8 @@ export class TodoService {
     return this.todoModel.find().sort({ createdAt: -1 }).exec();
   }
 
-  async create(text: string, date: string): Promise<Todo> {
-    const newTodo = new this.todoModel({ text, date });
+  async create(data: CreateTodoData): Promise<Todo> {
+    const newTodo = new this.todoModel(data);
     return newTodo.save();
   }
 
