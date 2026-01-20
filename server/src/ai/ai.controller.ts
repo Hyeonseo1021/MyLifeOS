@@ -1,24 +1,38 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Delete } from '@nestjs/common';
 import { AiService } from './ai.service';
 
 @Controller('ai')
 export class AiController {
   constructor(private readonly aiService: AiService) {}
-  
+
   @Post('chat')
-  async chat(@Body() body: { message: string }) {
-    return this.aiService.chat(body.message);
+  async chat(@Body() body: { message: string; sessionId: string }) {
+    return this.aiService.chat(body.message, body.sessionId);
+  }
+
+  @Get('history')
+  async getHistory(@Query('sessionId') sessionId: string) {
+    return this.aiService.getChatHistory(sessionId);
+  }
+
+  @Get('sessions')
+  async getSessions() {
+    return this.aiService.getSessions();
+  }
+
+  @Delete('history')
+  async clearHistory(@Query('sessionId') sessionId: string) {
+    return this.aiService.clearChatHistory(sessionId);
   }
 
   @Post('briefing')
-  async getBriefing(@Body() body: { weather: any, todos: any[] }) {
-    const response = await this.aiService.generateBriefing(body.weather, body.todos);
-    return { briefing: response };
+  async generateBriefing(@Body() body: { weather: any; todos: any[] }) {
+    const result = await this.aiService.generateBriefing(body.weather, body.todos);
+    return { briefing: result }; 
   }
 
-  @Post('issue')
-  async getIssue(@Body() body: { topic: string }) {
-    const response = await this.aiService.getIssues();
-    return { issues: response };
+  @Get('issue')
+  async getIssues() {
+    return this.aiService.getIssues(); 
   }
 }

@@ -1,12 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-@Schema({ timestamps: true }) 
+@Schema({ timestamps: true })
 export class ChatLog extends Document {
-  @Prop({ required: true, default: 'default-session' })
+  @Prop({ required: true, index: true }) 
   sessionId: string; 
 
-  @Prop({ required: true, enum: ['user', 'assistant', 'system'] })
+  @Prop({ required: true, enum: ['user', 'assistant'] })
   role: string; 
 
   @Prop({ required: true })
