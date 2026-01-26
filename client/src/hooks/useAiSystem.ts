@@ -5,13 +5,18 @@ import type { WeatherData, TodoItem } from '../types';
 type AiStatus = 'IDLE' | 'ANALYZING' | 'GENERATING' | 'COMPLETED' | 'ERROR';
 
 export function useAiSystem(weather: WeatherData | null, todos: TodoItem[]) {
-  const [briefing, setBriefing] = useState('');
-  const [aiStatus, setAiStatus] = useState<AiStatus>('IDLE');
-  const [displayedText, setDisplayedText] = useState('');
+  const [briefing, setBriefing] = useState<string>(() => sessionStorage.getItem('jarvis_briefing') || '');
+  const [displayedText, setDisplayedText] = useState<string>(() => sessionStorage.getItem('jarvis_briefing') || '');
+  const [aiStatus, setAiStatus] = useState<AiStatus>(
+    sessionStorage.getItem('jarvis_briefing') ? 'COMPLETED' : 'IDLE'
+  );
   
-  const lastTimeSlot = useRef<number>(-1);
+  const lastTimeSlot = useRef<number>(
+    parseInt(sessionStorage.getItem('jarvis_time_slot') || '-1')
+  );
 
   const todosRef = useRef<TodoItem[]>(todos);
+  const isFetchingRef = useRef(false);
 
   useEffect(() => {
     todosRef.current = todos;
@@ -26,55 +31,59 @@ export function useAiSystem(weather: WeatherData | null, todos: TodoItem[]) {
   };
 
   const fetchBriefing = async () => {
-    if (!weather) return;
+    if (!weather || isFetchingRef.current) return;
 
     try {
+      isFetchingRef.current = true;
       setAiStatus('ANALYZING');
       
       const apiPromise = api.ai.generateBriefing(weather, todosRef.current);
-
       await new Promise(r => setTimeout(r, 1500));
       setAiStatus('GENERATING');
 
       const data = await apiPromise;
-      setBriefing(data.briefing);
-      setAiStatus('COMPLETED');
       
-      lastTimeSlot.current = getTimeSlot();
+      setBriefing(data.briefing);
+      sessionStorage.setItem('jarvis_briefing', data.briefing);
+      
+      const currentSlot = getTimeSlot();
+      lastTimeSlot.current = currentSlot;
+      sessionStorage.setItem('jarvis_time_slot', currentSlot.toString());
+
+      setDisplayedText(''); 
+      setAiStatus('COMPLETED');
 
     } catch (error) {
       console.error("AI System Error:", error);
-      if (!briefing) setBriefing("시스템 연결 대기 중... 네트워크 상태를 확인해주세요.");
       setAiStatus('ERROR');
+    } finally {
+      isFetchingRef.current = false;
     }
   };
 
   useEffect(() => {
     if (!weather) return;
 
-    if (briefing === '') {
+    const currentSlot = getTimeSlot();
+    const savedBriefing = sessionStorage.getItem('jarvis_briefing');
+
+    if (!savedBriefing || currentSlot !== lastTimeSlot.current) {
       fetchBriefing();
     }
 
     const interval = setInterval(() => {
-      const currentSlot = getTimeSlot();
-      
-      if (currentSlot !== lastTimeSlot.current) {
-        console.log(`[AI System] Time slot changed (${lastTimeSlot.current} -> ${currentSlot}). Refreshing briefing.`);
+      if (getTimeSlot() !== lastTimeSlot.current) {
         fetchBriefing();
       }
     }, 60000); 
 
     return () => clearInterval(interval);
-    
-  }, [weather, briefing]); 
+  }, [weather]); 
 
   useEffect(() => {
-    if (!briefing) return;
+    if (!briefing || displayedText === briefing) return;
     
-    let i = 0;
-    setDisplayedText('');
-    
+    let i = displayedText.length;
     const timer = setInterval(() => {
       if (i <= briefing.length) {
         setDisplayedText(briefing.slice(0, i));
@@ -85,7 +94,7 @@ export function useAiSystem(weather: WeatherData | null, todos: TodoItem[]) {
     }, 30); 
 
     return () => clearInterval(timer);
-  }, [briefing]);
+  }, [briefing, displayedText]);
 
   return { displayedText, aiStatus };
 }

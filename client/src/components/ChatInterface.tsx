@@ -12,10 +12,17 @@ interface ChatInterfaceProps {
 export default function ChatInterface({ sessionId, onActivity, onLogs, onTitleUpdate }: ChatInterfaceProps) {
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   useEffect(() => {
+    setIsProcessing(false);
+    setInput('');
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+
     const fetchHistory = async () => {
       try {
         const history = await aiApi.getHistory(sessionId); 
@@ -45,7 +52,6 @@ export default function ChatInterface({ sessionId, onActivity, onLogs, onTitleUp
     setMessages(prev => [...prev, { id: Date.now(), role: 'user', text: userText }]);
 
     try {
-      // API 호출
       const data = await aiApi.chat(userText, sessionId); 
       
       setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: data.reply }]);
@@ -53,7 +59,6 @@ export default function ChatInterface({ sessionId, onActivity, onLogs, onTitleUp
       if (data.logs && onLogs) onLogs(data.logs);
       if (onActivity) onActivity('receive');
 
-      // [핵심] 백엔드가 제목을 새로 지어줬다면 부모(목록)에 알림
       if (data.title && onTitleUpdate) {
         onTitleUpdate(data.title);
       }
@@ -63,6 +68,7 @@ export default function ChatInterface({ sessionId, onActivity, onLogs, onTitleUp
       setMessages(prev => [...prev, { id: Date.now() + 1, role: 'system', text: 'Error: Connection failed.' }]);
     } finally {
       setIsProcessing(false);
+      inputRef.current?.focus();
     }
   };
 
@@ -102,6 +108,7 @@ export default function ChatInterface({ sessionId, onActivity, onLogs, onTitleUp
       <div className="p-3 border-t border-neutral-800 bg-neutral-950/80 backdrop-blur-md shrink-0">
         <div className="flex gap-2 items-center bg-neutral-900 border border-neutral-800 rounded-full px-2 py-2 focus-within:border-neutral-600 transition-colors">
             <input 
+                ref={inputRef}
                 className="flex-1 bg-transparent outline-none text-white text-sm placeholder-neutral-500 px-3 min-w-0"
                 placeholder={`메시지를 입력하세요...`} 
                 value={input}

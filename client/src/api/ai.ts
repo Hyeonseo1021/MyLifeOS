@@ -37,5 +37,13 @@ export const aiApi = {
   clearHistory: async (sessionId: string) => {
     const response = await axios.delete(`${BASE_URL}/ai/history?sessionId=${sessionId}`);
     return response.data;
+  },
+
+  deleteSession: async (sessionId: string) => {
+    const res = await fetch(`${BASE_URL}/ai/history?sessionId=${sessionId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('채팅 삭제 실패');
+    return res.json();
   }
 };
