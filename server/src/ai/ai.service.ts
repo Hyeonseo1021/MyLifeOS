@@ -7,6 +7,9 @@ import { HumanMessage, SystemMessage, AIMessage, BaseMessage } from "@langchain/
 import { MongoDBAtlasVectorSearch } from "@langchain/mongodb";
 import { MongoClient } from "mongodb";
 import { PromptTemplate } from '@langchain/core/prompts';
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters"; 
+const pdf = require('pdf-parse'); 
+
 import { TodoService } from '../todo/todo.service';
 import { TodoDocument } from 'src/todo/todo.schema';
 import { ChatLog } from './chatLog.schema';
@@ -23,7 +26,8 @@ export class AiService {
   constructor(
     private todoService: TodoService,
     @InjectModel(ChatLog.name) private chatLogModel: Model<ChatLog>,
-    @InjectModel(ChatSession.name) private chatSessionModel: Model<ChatSession>
+    @InjectModel(ChatSession.name) private chatSessionModel: Model<ChatSession>,
+    @InjectModel(VectorDoc.name) private vectorDocModel: Model<VectorDoc>
   ) {
     this.model = new ChatOpenAI({
       modelName: 'gpt-3.5-turbo',
@@ -76,6 +80,64 @@ export class AiService {
     }
   }
 
+  async processChatWithFile(message: string, sessionId: string, file: any) {
+    const fileLogs: { level: string; message: string }[] = [];
+    
+    if (file) {
+      fileLogs.push({ level: 'INFO', message: `Receiving file: ${file.originalname}` });
+      
+      let fileContent = '';
+      try {
+        if (file.mimetype === 'application/pdf') {
+          const pdfData = await pdf(file.buffer);
+          fileContent = pdfData.text;
+        } else {
+          fileContent = file.buffer.toString('utf-8');
+        }
+
+        if (fileContent.trim()) {
+            fileLogs.push({ level: 'INFO', message: `Extracted total ${fileContent.length} chars.` });
+
+            const splitter = new RecursiveCharacterTextSplitter({
+                chunkSize: 1000,   
+                chunkOverlap: 200,  
+            });
+
+            const docs = await splitter.createDocuments([fileContent]);
+            fileLogs.push({ level: 'INFO', message: `Split into ${docs.length} chunks.` });
+
+            for (let i = 0; i < docs.length; i++) {
+                const doc = docs[i];
+                const embedding = await this.embeddings.embedQuery(doc.pageContent);
+                
+                await this.vectorDocModel.create({
+                    content: doc.pageContent,
+                    embedding: embedding,
+                    metadata: {
+                        filename: file.originalname,
+                        chunkIndex: i, 
+                        uploadedAt: new Date(),
+                        sessionId: sessionId
+                    }
+                });
+            }
+            
+            fileLogs.push({ level: 'SUCCESS', message: `Successfully vectorized ${docs.length} chunks.` });
+        }
+      } catch (e) {
+          console.error(e);
+          fileLogs.push({ level: 'ERROR', message: 'File processing failed: ' + e.message });
+      }
+    }
+
+    const chatResult = await this.chat(message, sessionId);
+    
+    return {
+        ...chatResult,
+        logs: [...fileLogs, ...chatResult.logs]
+    };
+  }
+
   async chat(message: string, sessionId: string) {
     const logs: { level: string; message: string }[] = [];
     logs.push({ level: 'INFO', message: `User Input: "${message}"` });
@@ -112,10 +174,10 @@ export class AiService {
 
     let ragContext = "";
     try {
-      const results = await this.vectorStore.similaritySearch(message, 3);
+      const results = await this.vectorStore.similaritySearch(message, 5);
       if (results.length > 0) {
-        ragContext = results.map(doc => `[관련 지식]: ${doc.pageContent}`).join("\n\n");
-        logs.push({ level: 'SUCCESS', message: `RAG: Found ${results.length} docs.` });
+        ragContext = results.map(doc => `[참고 자료 (${doc.metadata?.filename || '문서'})]:\n${doc.pageContent}`).join("\n\n");
+        logs.push({ level: 'SUCCESS', message: `RAG: Found ${results.length} relevant chunks.` });
       } else {
         ragContext = "관련된 저장 문서가 없습니다.";
       }
@@ -180,7 +242,7 @@ export class AiService {
         - 날짜: ${this.getTodayStr()}
         - 미완료 업무 목록(ID 참조용): 
         ${todoContext}
-        - 참고 지식(RAG): 
+        - 참고 지식(RAG - 사용자가 업로드한 문서 내용): 
         ${ragContext}
 
         [업무 처리 가이드]
@@ -189,7 +251,9 @@ export class AiService {
            - 과거형으로 끝마침을 표현하면, 목록에서 ID를 찾아 'complete_todo'를 사용합니다.
            - 시간이나 내용의 변경을 요청하면 'update_todo'를 사용합니다.
            - 사용자가 이미 완료했다고 말한 일은 절대 새로 추가하지 않습니다.
-        2. 지식 활용: 사용자의 질문은 참고 지식과 이전 대화 내역을 바탕으로 답변합니다.
+        2. 지식 활용: '참고 지식(RAG)'에 정보가 있다면 이를 최우선으로 활용하여 상세히 답변하세요.
+           - 문서 내용을 인용할 때는 "문서에 따르면..."과 같이 출처를 밝히세요.
+           - 사용자에게 답변할 때는 문서의 내용을 요약하거나 질문에 대한 정확한 답을 제시하세요.
         3. 커뮤니케이션: 불필요한 감탄사나 이모티콘을 배제하고, 정중하고 신뢰감 있는 비서의 톤을 유지하세요.
       `;
 
