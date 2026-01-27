@@ -24,6 +24,13 @@ export const aiApi = {
     return response.data;
   },
 
+  chatWithFile: async (formData: FormData) => {
+    const response = await axios.post<{ reply: string, logs: any[], title?: string }>(`${BASE_URL}/ai/chat/file`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
   getHistory: async (sessionId: string) => {
     const response = await axios.get(`${BASE_URL}/ai/history?sessionId=${sessionId}`);
     return response.data; 
@@ -37,5 +44,10 @@ export const aiApi = {
   clearHistory: async (sessionId: string) => {
     const response = await axios.delete(`${BASE_URL}/ai/history?sessionId=${sessionId}`);
     return response.data;
-  }
+  },
+
+  deleteSession: async (sessionId: string) => {
+    const response = await axios.delete(`${BASE_URL}/ai/history?sessionId=${sessionId}`);
+    return response.data;
+  },
 };

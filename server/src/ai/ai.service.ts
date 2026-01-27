@@ -7,7 +7,11 @@ import { HumanMessage, SystemMessage, AIMessage, BaseMessage } from "@langchain/
 import { MongoDBAtlasVectorSearch } from "@langchain/mongodb";
 import { MongoClient } from "mongodb";
 import { PromptTemplate } from '@langchain/core/prompts';
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters"; 
+const pdf = require('pdf-parse'); 
+
 import { TodoService } from '../todo/todo.service';
+import { TodoDocument } from 'src/todo/todo.schema';
 import { ChatLog } from './chatLog.schema';
 import { VectorDoc } from './vectorDoc.schema';
 import { ChatSession } from './chatSession.schema';
@@ -22,7 +26,8 @@ export class AiService {
   constructor(
     private todoService: TodoService,
     @InjectModel(ChatLog.name) private chatLogModel: Model<ChatLog>,
-    @InjectModel(ChatSession.name) private chatSessionModel: Model<ChatSession>
+    @InjectModel(ChatSession.name) private chatSessionModel: Model<ChatSession>,
+    @InjectModel(VectorDoc.name) private vectorDocModel: Model<VectorDoc>
   ) {
     this.model = new ChatOpenAI({
       modelName: 'gpt-3.5-turbo',
@@ -65,7 +70,7 @@ export class AiService {
       });
 
       const response = await summaryModel.invoke([
-        new SystemMessage("사용자의 메시지를 바탕으로 15자 이내의 짧고 간결한 대화 주제(제목)를 한글로 만들어줘. 따옴표 없이 텍스트만 출력해."),
+        new SystemMessage("사용자의 메시지를 바탕으로 15자 이내의 짧고 간결한 대화 주제를 한글로 만들어줘. 따옴표 없이 텍스트만 출력해."),
         new HumanMessage(message)
       ]);
 
@@ -73,6 +78,64 @@ export class AiService {
     } catch (e) {
       return "새로운 대화";
     }
+  }
+
+  async processChatWithFile(message: string, sessionId: string, file: any) {
+    const fileLogs: { level: string; message: string }[] = [];
+    
+    if (file) {
+      fileLogs.push({ level: 'INFO', message: `Receiving file: ${file.originalname}` });
+      
+      let fileContent = '';
+      try {
+        if (file.mimetype === 'application/pdf') {
+          const pdfData = await pdf(file.buffer);
+          fileContent = pdfData.text;
+        } else {
+          fileContent = file.buffer.toString('utf-8');
+        }
+
+        if (fileContent.trim()) {
+            fileLogs.push({ level: 'INFO', message: `Extracted total ${fileContent.length} chars.` });
+
+            const splitter = new RecursiveCharacterTextSplitter({
+                chunkSize: 1000,   
+                chunkOverlap: 200,  
+            });
+
+            const docs = await splitter.createDocuments([fileContent]);
+            fileLogs.push({ level: 'INFO', message: `Split into ${docs.length} chunks.` });
+
+            for (let i = 0; i < docs.length; i++) {
+                const doc = docs[i];
+                const embedding = await this.embeddings.embedQuery(doc.pageContent);
+                
+                await this.vectorDocModel.create({
+                    content: doc.pageContent,
+                    embedding: embedding,
+                    metadata: {
+                        filename: file.originalname,
+                        chunkIndex: i, 
+                        uploadedAt: new Date(),
+                        sessionId: sessionId
+                    }
+                });
+            }
+            
+            fileLogs.push({ level: 'SUCCESS', message: `Successfully vectorized ${docs.length} chunks.` });
+        }
+      } catch (e) {
+          console.error(e);
+          fileLogs.push({ level: 'ERROR', message: 'File processing failed: ' + e.message });
+      }
+    }
+
+    const chatResult = await this.chat(message, sessionId);
+    
+    return {
+        ...chatResult,
+        logs: [...fileLogs, ...chatResult.logs]
+    };
   }
 
   async chat(message: string, sessionId: string) {
@@ -101,19 +164,20 @@ export class AiService {
 
     let todoContext = "현재 등록된 할 일이 없습니다.";
     try {
-      const rawTodos = await this.todoService.findAll();
+      const rawTodos = await this.todoService.findAll() as TodoDocument[]; 
       const pendingTodos = rawTodos.filter(t => !t.done);
+      
       if (pendingTodos.length > 0) {
-        todoContext = pendingTodos.map(t => `- [${t.date}] ${t.text}`).join('\n');
+        todoContext = pendingTodos.map(t => `- [ID: ${t.id}] [${t.date}] ${t.text}`).join('\n');
       }
     } catch (e) { }
 
     let ragContext = "";
     try {
-      const results = await this.vectorStore.similaritySearch(message, 3);
+      const results = await this.vectorStore.similaritySearch(message, 5);
       if (results.length > 0) {
-        ragContext = results.map(doc => `[관련 지식]: ${doc.pageContent}`).join("\n\n");
-        logs.push({ level: 'SUCCESS', message: `RAG: Found ${results.length} docs.` });
+        ragContext = results.map(doc => `[참고 자료 (${doc.metadata?.filename || '문서'})]:\n${doc.pageContent}`).join("\n\n");
+        logs.push({ level: 'SUCCESS', message: `RAG: Found ${results.length} relevant chunks.` });
       } else {
         ragContext = "관련된 저장 문서가 없습니다.";
       }
@@ -124,7 +188,7 @@ export class AiService {
         type: 'function' as const,
         function: {
           name: 'add_todo',
-          description: '일정을 추가합니다. 사용자의 발언에서 계획, 약속, 할 일이 감지되면 사용하세요.',
+          description: '새로운 일정을 추가합니다. 사용자의 발언에서 새로운 계획, 약속, 할 일이 감지되면 사용하세요.',
           parameters: {
             type: 'object',
             properties: {
@@ -135,27 +199,62 @@ export class AiService {
           },
         },
       },
+      {
+        type: 'function' as const,
+        function: {
+          name: 'complete_todo',
+          description: '기존 일정을 완료 처리합니다. 사용자가 특정 일정을 끝냈거나 달성했다고 할 때 사용하세요.',
+          parameters: {
+            type: 'object',
+            properties: {
+              todoId: { type: 'string', description: '완료 처리할 할 일의 고유 ID' },
+            },
+            required: ['todoId'],
+          },
+        },
+      },
+      {
+        type: 'function' as const,
+        function: {
+          name: 'update_todo',
+          description: '기존 일정의 내용이나 날짜를 수정합니다. 사용자가 약속 시간을 바꾸거나 내용을 변경하고 싶어할 때 사용하세요.',
+          parameters: {
+            type: 'object',
+            properties: {
+              todoId: { type: 'string', description: '수정할 할 일의 고유 ID' },
+              text: { type: 'string', description: '수정된 할 일 내용' },
+              date: { type: 'string', description: '수정된 YYYY-MM-DD 형식의 날짜' },
+            },
+            required: ['todoId'],
+          },
+        },
+      },
     ];
 
     try {
       const modelWithTools = this.model.bindTools(tools);
 
       const systemPrompt = `
-        당신은 유능하고 센스 있는 AI 비서 'Jarvis'입니다.
-        사용자와 자연스럽게 대화하며 필요한 도움을 제공하세요.
+        당신은 유능하고 전문적인 AI 비서 'Jarvis'입니다.
+        사용자와 자연스럽게 대화하며 정확하고 신속하게 업무를 지원하세요.
 
-        [현재 상황 정보]
-        - 오늘 날짜: ${this.getTodayStr()}
-        - 사용자의 남은 할 일: 
+        [상황 정보]
+        - 날짜: ${this.getTodayStr()}
+        - 미완료 업무 목록(ID 참조용): 
         ${todoContext}
-        - 참고 지식(RAG): 
+        - 참고 지식(RAG - 사용자가 업로드한 문서 내용): 
         ${ragContext}
 
         [업무 처리 가이드]
-        1. **자연스러운 일정 감지**: 사용자가 굳이 "일정 추가해줘"라고 명령하지 않아도, 대화 내용이 **미래의 계획, 약속, 해야 할 업무**를 포함한다면 스스로 판단하여 'add_todo' 도구를 실행하세요.
-        2. **맥락 기반 답변**: 사용자의 질문에 답할 때는 **[참고 지식]**과 **[이전 대화 내역]**을 최우선으로 고려하세요.
-        3. **정보의 정확성**: 개인적인 일정이나 RAG에 있는 지식은 사실대로 답하되, 모르는 외부 정보는 솔직히 모른다고 하거나 검색이 필요하다고 말하세요.
-        4. **톤앤매너**: 딱딱한 기계처럼 굴지 말고, 정중하지만 친근한 비서처럼 대답하세요.
+        1. 일정 관리: 대화의 맥락을 정확히 파악하여 도구를 선택하세요. 
+           - 미래의 새로운 계획은 'add_todo'를 사용합니다.
+           - 과거형으로 끝마침을 표현하면, 목록에서 ID를 찾아 'complete_todo'를 사용합니다.
+           - 시간이나 내용의 변경을 요청하면 'update_todo'를 사용합니다.
+           - 사용자가 이미 완료했다고 말한 일은 절대 새로 추가하지 않습니다.
+        2. 지식 활용: '참고 지식(RAG)'에 정보가 있다면 이를 최우선으로 활용하여 상세히 답변하세요.
+           - 문서 내용을 인용할 때는 "문서에 따르면..."과 같이 출처를 밝히세요.
+           - 사용자에게 답변할 때는 문서의 내용을 요약하거나 질문에 대한 정확한 답을 제시하세요.
+        3. 커뮤니케이션: 불필요한 감탄사나 이모티콘을 배제하고, 정중하고 신뢰감 있는 비서의 톤을 유지하세요.
       `;
 
       logs.push({ level: 'WARNING', message: 'Generating response...' });
@@ -171,22 +270,32 @@ export class AiService {
 
       if (toolCalls && toolCalls.length > 0) {
         for (const toolCall of toolCalls) {
+          const args = toolCall.args;
+
           if (toolCall.name === 'add_todo') {
-            const args = toolCall.args;
             const targetDate = args.date || this.getTodayStr();
-
             await this.todoService.create({ text: args.text, date: targetDate, done: false });
-
-            const confirmation = `✅ 일정에 [${args.text}] 내용을 추가했습니다.`;
+            const confirmation = `일정에 [${args.text}] 항목을 추가했습니다.`;
             finalReply = finalReply ? `${finalReply}\n\n${confirmation}` : confirmation;
-
             logs.push({ level: 'SUCCESS', message: `Executed: add_todo (${args.text})` });
+          } 
+          else if (toolCall.name === 'complete_todo') {
+            await this.todoService.updateStatus(args.todoId, true);
+            const confirmation = `해당 일정을 완료 처리했습니다.`;
+            finalReply = finalReply ? `${finalReply}\n\n${confirmation}` : confirmation;
+            logs.push({ level: 'SUCCESS', message: `Executed: complete_todo (${args.todoId})` });
+          }
+          else if (toolCall.name === 'update_todo') {
+            await this.todoService.updateContent(args.todoId, args.text, args.date);
+            const confirmation = `요청하신 대로 일정을 수정했습니다.`;
+            finalReply = finalReply ? `${finalReply}\n\n${confirmation}` : confirmation;
+            logs.push({ level: 'SUCCESS', message: `Executed: update_todo (${args.todoId})` });
           }
         }
       }
 
       await this.chatLogModel.create({ sessionId, role: 'user', content: message });
-      if (!finalReply) finalReply = "처리가 완료되었습니다.";
+      if (!finalReply) finalReply = "요청하신 작업을 처리했습니다.";
       await this.chatLogModel.create({ sessionId, role: 'assistant', content: finalReply });
 
       return { reply: finalReply, logs, title: session.title };
@@ -226,9 +335,7 @@ export class AiService {
 
   async generateBriefing(weather: any, todos: any[]): Promise<string> {
     const todayStr = this.getTodayStr();
-    
     const overdueTodos = todos.filter(t => t.date < todayStr && !t.done);
-    
     const todayTodos = todos.filter(t => t.date === todayStr); 
 
     const weatherStr = weather 
@@ -245,24 +352,25 @@ export class AiService {
 
     const prompt = PromptTemplate.fromTemplate(`
       당신은 사용자의 개인 AI 비서 'Jarvis'입니다.
-      아래 필터링된 일정 정보를 바탕으로 오늘 하루 브리핑을 해주세요.
+      아래 일정 정보를 바탕으로 오늘 하루 브리핑을 해주세요.
 
       [현재 상황]
       - 날씨: {weather}
       - 오늘 날짜: {today_date}
 
       [업무 현황]
-      1. 처리하지 못한 지난 업무:
+      1. 미완료 과거 업무:
       {overdue_list}
       
       2. 오늘의 할 일:
       {today_list}
 
       [작성 가이드]
-      - **지난 업무가 있다면** 가볍게 상기시켜주되, 부담스럽지 않게 오늘 처리하라고 권유하세요.
-      - **오늘 할 일**을 메인으로 브리핑하세요.
-      - 전체 분량은 **3문장 내외**로 자연스럽게 연결하세요.
-      - 말투는 정중하면서도 든든한 비서처럼 하세요.
+      - 이모티콘을 사용하지 마세요.
+      - 미완료 업무가 있다면 가볍게 언급하여 처리를 권장하세요.
+      - 오늘의 할 일을 중심으로 브리핑하세요.
+      - 전체 분량은 3문장 내외로 간결하게 작성하세요.
+      - 정중하고 전문적인 비서의 말투를 사용하세요.
 
       [브리핑 메시지]:
     `);
@@ -307,7 +415,6 @@ export class AiService {
       }
 
       if (!Array.isArray(items)) {
-        console.log("뉴스 데이터 형식이 배열이 아님:", parsedData); 
         return [];
       }
 
@@ -318,10 +425,7 @@ export class AiService {
       }));
 
     } catch (error) {
-      console.error("News Error:", error);
       return [];
     }
   }
-
-  async 
 }

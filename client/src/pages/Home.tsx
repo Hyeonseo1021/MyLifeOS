@@ -157,7 +157,7 @@ export default function Home({ setAiState }: HomeProps) {
         </div>
 
         {/* 2. Middle Row */}
-        <div className="grid grid-cols-2 gap-4 h-[380px] shrink-0">
+        <div className="grid grid-cols-2 gap-4 h-[500px] shrink-0">
             
             <div className="bg-neutral-900/20 border border-neutral-800 p-6 relative overflow-hidden flex flex-col group transition-colors hover:border-neutral-700">
                 <div className="absolute top-0 left-0 w-1 h-full bg-white transition-all duration-500 group-hover:bg-blue-500"></div>

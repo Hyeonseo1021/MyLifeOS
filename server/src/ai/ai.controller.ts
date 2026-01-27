@@ -1,4 +1,5 @@
-import { Controller, Post, Body, Get, Query, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Delete, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AiService } from './ai.service';
 
 @Controller('ai')
@@ -8,6 +9,15 @@ export class AiController {
   @Post('chat')
   async chat(@Body() body: { message: string; sessionId: string }) {
     return this.aiService.chat(body.message, body.sessionId);
+  }
+
+  @Post('chat/file')
+  @UseInterceptors(FileInterceptor('file'))
+  async chatWithFile(
+    @Body() body: { message: string; sessionId: string },
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.aiService.processChatWithFile(body.message, body.sessionId, file);
   }
 
   @Get('history')
