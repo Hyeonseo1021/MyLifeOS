@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
 import Mlo from './pages/MLO'
+import Memory from './pages/Memory';
 import type { TabType, AiState } from './types';
 
 const Placeholder = ({ title }: { title: string }) => (
@@ -30,7 +31,7 @@ export default function App() {
 
         {activeTab === 'HOME' && <Home setAiState={setAiState} />}
         {activeTab === 'MLO' && <Mlo />}
-        {activeTab === 'MEMORY' && <Placeholder title="Memory" />}
+        {activeTab === 'MEMORY' && <Memory />}
         {activeTab === 'SETTINGS' && <Placeholder title="Settings" />}
         
       </div>

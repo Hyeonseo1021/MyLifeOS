@@ -15,6 +15,7 @@ import { TodoDocument } from 'src/todo/todo.schema';
 import { ChatLog } from './chatLog.schema';
 import { VectorDoc } from './vectorDoc.schema';
 import { ChatSession } from './chatSession.schema';
+import { Note } from './note.schema';
 
 @Injectable()
 export class AiService {
@@ -27,7 +28,8 @@ export class AiService {
     private todoService: TodoService,
     @InjectModel(ChatLog.name) private chatLogModel: Model<ChatLog>,
     @InjectModel(ChatSession.name) private chatSessionModel: Model<ChatSession>,
-    @InjectModel(VectorDoc.name) private vectorDocModel: Model<VectorDoc>
+    @InjectModel(VectorDoc.name) private vectorDocModel: Model<VectorDoc>,
+    @InjectModel(Note.name) private noteModel: Model<Note>,
   ) {
     this.model = new ChatOpenAI({
       modelName: 'gpt-3.5-turbo',
@@ -106,11 +108,13 @@ export class AiService {
             const docs = await splitter.createDocuments([fileContent]);
             fileLogs.push({ level: 'INFO', message: `Split into ${docs.length} chunks.` });
 
+            const vectorDocs: any[] = []; 
+
             for (let i = 0; i < docs.length; i++) {
                 const doc = docs[i];
                 const embedding = await this.embeddings.embedQuery(doc.pageContent);
                 
-                await this.vectorDocModel.create({
+                vectorDocs.push({
                     content: doc.pageContent,
                     embedding: embedding,
                     metadata: {
@@ -120,6 +124,10 @@ export class AiService {
                         sessionId: sessionId
                     }
                 });
+            }
+
+            if (vectorDocs.length > 0) {
+              await this.vectorDocModel.insertMany(vectorDocs);
             }
             
             fileLogs.push({ level: 'SUCCESS', message: `Successfully vectorized ${docs.length} chunks.` });
@@ -173,11 +181,19 @@ export class AiService {
     } catch (e) { }
 
     let ragContext = "";
+    let sources: any[] = [];
     try {
       const results = await this.vectorStore.similaritySearch(message, 5);
       if (results.length > 0) {
         ragContext = results.map(doc => `[참고 자료 (${doc.metadata?.filename || '문서'})]:\n${doc.pageContent}`).join("\n\n");
         logs.push({ level: 'SUCCESS', message: `RAG: Found ${results.length} relevant chunks.` });
+
+        sources = results.map(doc => ({
+            filename: doc.metadata?.filename || 'Unknown Source',
+            content: doc.pageContent.slice(0, 200) + '...', 
+            page: doc.metadata?.page,
+            score: 0 
+        }));
       } else {
         ragContext = "관련된 저장 문서가 없습니다.";
       }
@@ -298,7 +314,7 @@ export class AiService {
       if (!finalReply) finalReply = "요청하신 작업을 처리했습니다.";
       await this.chatLogModel.create({ sessionId, role: 'assistant', content: finalReply });
 
-      return { reply: finalReply, logs, title: session.title };
+      return { reply: finalReply, logs, title: session.title, sources };
 
     } catch (error: any) {
       console.error(error);
@@ -319,7 +335,10 @@ export class AiService {
   }
 
   async getSessions() {
-    const sessions = await this.chatSessionModel.find().sort({ updatedAt: -1 });
+    const sessions = await this.chatSessionModel
+      .find()
+      .sort({ updatedAt: -1 });
+      
     return sessions.map(s => ({
       sessionId: s.sessionId,
       title: s.title,
@@ -328,9 +347,22 @@ export class AiService {
   }
 
   async clearChatHistory(sessionId: string) {
-    await this.chatLogModel.deleteMany({ sessionId });
-    await this.chatSessionModel.deleteOne({ sessionId });
-    return { success: true };
+    console.log(`[삭제 요청] ${sessionId} - Hard Delete (즉시 삭제) 수행`);
+
+    try {
+      Promise.all([
+        this.chatSessionModel.deleteOne({ sessionId }),
+
+        this.chatLogModel.deleteMany({ sessionId }),
+        
+        this.vectorDocModel.deleteMany({ 'metadata.sessionId': sessionId })
+      ]);
+
+      return { success: true };
+    } catch (e) {
+      console.error('삭제 중 오류 발생:', e);
+      throw new Error('채팅 내역 삭제 실패');
+    }
   }
 
   async generateBriefing(weather: any, todos: any[]): Promise<string> {
@@ -427,5 +459,24 @@ export class AiService {
     } catch (error) {
       return [];
     }
+  }
+  async createNote(title: string, content: string, tags: string[]) {
+    const textToEmbed = `Title: ${title || 'Untitled'}\nContent: ${content}\nTags: ${tags.join(', ')}`;
+    const embedding = await this.embeddings.embedQuery(textToEmbed);
+
+    return this.noteModel.create({
+      title,
+      content,
+      tags,
+      embedding 
+    });
+  }
+
+  async getNotes() {
+    return this.noteModel.find().sort({ createdAt: -1 });
+  }
+
+  async deleteNote(id: string) {
+    return this.noteModel.findByIdAndDelete(id);
   }
 }

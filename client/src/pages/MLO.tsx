@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import ChatInterface from '../components/ChatInterface';
-import SystemLog from '../components/SystemLog'; 
+import ContextViewer, { type SourceItem } from '../components/ContextViewer'; 
 import { aiApi, type ChatSessionData } from '../api/ai';
 import type { LogEntry } from '../types'; 
 
@@ -8,6 +8,7 @@ export default function Mlo() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>(`session-${Date.now()}`);
   const [sessionList, setSessionList] = useState<ChatSessionData[]>([]);
+  const [contextSources, setContextSources] = useState<SourceItem[]>([]);
   const isInitialized = useRef(false);
 
   const addLog = (level: LogEntry['level'], message: string) => {
@@ -24,7 +25,6 @@ export default function Mlo() {
         const list = await aiApi.getSessions();
         if (list && list.length > 0) {
             setSessionList(list);
-            // 처음 로드 시 가장 최근 대화방으로 자동 입장
             setCurrentSessionId(list[0].sessionId);
         }
     } catch (e) { console.error(e); }
@@ -55,40 +55,46 @@ export default function Mlo() {
     };
     setCurrentSessionId(newId);
     setSessionList(prev => [newSession, ...prev]);
+    setContextSources([]);
   };
 
   const handleSelectSession = (sessionId: string) => {
       setCurrentSessionId(sessionId);
+      setContextSources([]);
+  };
+
+  const handleContextUpdate = (sources: SourceItem[]) => {
+      setContextSources(sources);
   };
 
   const handleDeleteSession = async (e: React.MouseEvent, sessionIdToDelete: string) => {
     e.stopPropagation();
 
-    if (!confirm('이 대화 기록을 완전히 삭제하시겠습니까?')) return;
+    const remainingSessions = sessionList.filter(s => s.sessionId !== sessionIdToDelete);
 
-    try {
-      await aiApi.deleteSession(sessionIdToDelete); 
-
-      const remainingSessions = sessionList.filter(s => s.sessionId !== sessionIdToDelete);
-
-      if (remainingSessions.length > 0) {
-        setSessionList(remainingSessions);
-        if (currentSessionId === sessionIdToDelete) {
-          setCurrentSessionId(remainingSessions[0].sessionId);
-        }
-      } else {
-        const newId = `session-${Date.now()}`;
-        setSessionList([{ sessionId: newId, title: '새로운 대화', updatedAt: new Date().toISOString() }]);
-        setCurrentSessionId(newId);
+    if (remainingSessions.length > 0) {
+      setSessionList(remainingSessions);
+      if (currentSessionId === sessionIdToDelete) {
+        setCurrentSessionId(remainingSessions[0].sessionId);
+        setContextSources([]);
       }
-
-      addLog('SUCCESS', '채팅 세션이 삭제되었습니다.');
-    } catch (error) {
-      console.error(error);
-      addLog('ERROR', '채팅 세션 삭제에 실패했습니다.');
+    } else {
+      const newId = `session-${Date.now()}`;
+      setSessionList([{ sessionId: newId, title: '새로운 대화', updatedAt: new Date().toISOString() }]);
+      setCurrentSessionId(newId);
+      setContextSources([]);
     }
-  };
 
+    aiApi.deleteSession(sessionIdToDelete)
+      .then(() => {
+        addLog('SUCCESS', '삭제 완료.');
+      })
+      .catch((error) => {
+        console.error(error);
+        loadSessions(); 
+      });
+  };
+  
   const handleServerLogs = (serverLogs: any[]) => {
       if (!serverLogs) return;
       serverLogs.forEach(log => addLog(log.level, log.message));
@@ -121,7 +127,6 @@ export default function Mlo() {
             <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin scrollbar-thumb-neutral-800">
                 <div className="text-[10px] text-neutral-500 font-bold px-2 py-1 uppercase">Recent Chats</div>
                 {sessionList.map((session) => (
-                    // ✅ [UI 수정] 마우스 오버 시 휴지통 아이콘 표시
                     <div
                         key={session.sessionId}
                         onClick={() => handleSelectSession(session.sessionId)}
@@ -135,7 +140,7 @@ export default function Mlo() {
                         <button
                             onClick={(e) => handleDeleteSession(e, session.sessionId)}
                             className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-red-500 transition-all p-1"
-                            title="대화 삭제"
+                            title="삭제"
                         >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -152,11 +157,12 @@ export default function Mlo() {
                 sessionId={currentSessionId} 
                 onLogs={handleServerLogs}
                 onTitleUpdate={handleTitleUpdate} 
+                onContextUpdate={handleContextUpdate}
             /> 
         </div>
 
         <div className="col-span-3 h-full min-h-0 overflow-hidden">
-            <SystemLog logs={logs} />
+            <ContextViewer sources={contextSources} />
         </div>
       </div>
     </div>

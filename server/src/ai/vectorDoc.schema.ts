@@ -16,3 +16,5 @@ export class VectorDoc {
 }
 
 export const VectorDocSchema = SchemaFactory.createForClass(VectorDoc);
+
+VectorDocSchema.index({ 'metadata.sessionId': 1 }, { background: true });

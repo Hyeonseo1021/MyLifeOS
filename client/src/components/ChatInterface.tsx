@@ -7,9 +7,10 @@ interface ChatInterfaceProps {
   onActivity?: (type: 'send' | 'receive') => void;
   onLogs?: (logs: any[]) => void;
   onTitleUpdate?: (title: string) => void; 
+  onContextUpdate?: (sources: any[]) => void;
 }
 
-export default function ChatInterface({ sessionId, onActivity, onLogs, onTitleUpdate }: ChatInterfaceProps) {
+export default function ChatInterface({ sessionId, onActivity, onLogs, onTitleUpdate, onContextUpdate }: ChatInterfaceProps) {
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -21,9 +22,18 @@ export default function ChatInterface({ sessionId, onActivity, onLogs, onTitleUp
   useEffect(() => {
     setIsProcessing(false);
     setInput('');
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 100);
+    
+    const grabFocus = () => {
+      window.focus(); 
+      if (inputRef.current) {
+        inputRef.current.disabled = false;
+        inputRef.current.focus();
+      }
+    };
+
+    grabFocus();
+    requestAnimationFrame(grabFocus); 
+    setTimeout(grabFocus, 100); 
 
     const fetchHistory = async () => {
       try {
@@ -39,9 +49,9 @@ export default function ChatInterface({ sessionId, onActivity, onLogs, onTitleUp
   }, [sessionId]);
 
   useEffect(() => {
-    setTimeout(() => {
+    requestAnimationFrame(() => {
         scrollRef.current?.scrollIntoView({ behavior: 'auto' });
-    }, 100);
+    });
   }, [messages]);
 
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
@@ -69,6 +79,11 @@ export default function ChatInterface({ sessionId, onActivity, onLogs, onTitleUp
 
     setMessages(prev => [...prev, { id: Date.now(), role: 'user', text: displayMsg }]);
 
+    requestAnimationFrame(() => {
+        window.focus();
+        inputRef.current?.focus();
+    });
+
     try {
       const formData = new FormData();
       formData.append('message', userText);
@@ -85,13 +100,21 @@ export default function ChatInterface({ sessionId, onActivity, onLogs, onTitleUp
       if (onActivity) onActivity('receive');
       if (data.title && onTitleUpdate) onTitleUpdate(data.title);
 
+      if (data.sources && onContextUpdate) {
+        onContextUpdate(data.sources);
+      } else if (onContextUpdate) {
+        onContextUpdate([]); 
+      }
+
     } catch (error) {
       console.error(error);
       setMessages(prev => [...prev, { id: Date.now() + 1, role: 'system', text: 'Error: Data transmission failed.' }]);
     } finally {
       setIsProcessing(false);
-      // 포커스 복귀
-      setTimeout(() => inputRef.current?.focus(), 100);
+      requestAnimationFrame(() => {
+          window.focus();
+          inputRef.current?.focus();
+      });
     }
   };
 
@@ -102,7 +125,6 @@ export default function ChatInterface({ sessionId, onActivity, onLogs, onTitleUp
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-neutral-900/20 border border-neutral-800 rounded-lg overflow-hidden relative">
-      {/* 메시지 목록 영역 (기존과 동일) */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-neutral-800">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -129,9 +151,7 @@ export default function ChatInterface({ sessionId, onActivity, onLogs, onTitleUp
         <div ref={scrollRef} />
       </div>
 
-      {/* 입력 영역 */}
       <div className="p-3 border-t border-neutral-800 bg-neutral-950/80 backdrop-blur-md shrink-0">
-        {/* 선택된 파일 미리보기 */}
         {selectedFile && (
             <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-neutral-900 border border-neutral-800 rounded text-xs text-green-400 w-fit">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
@@ -141,7 +161,6 @@ export default function ChatInterface({ sessionId, onActivity, onLogs, onTitleUp
         )}
 
         <div className="flex gap-2 items-center bg-neutral-900 border border-neutral-800 rounded-full px-2 py-2 focus-within:border-neutral-600 transition-colors">
-            {/* 파일 업로드 버튼 */}
             <input 
                 type="file" 
                 ref={fileInputRef} 
@@ -159,6 +178,7 @@ export default function ChatInterface({ sessionId, onActivity, onLogs, onTitleUp
 
             <input 
                 ref={inputRef}
+                autoFocus={true} 
                 className="flex-1 bg-transparent outline-none text-white text-sm placeholder-neutral-500 px-1 min-w-0"
                 placeholder="메시지 입력 또는 파일 업로드..." 
                 value={input}
