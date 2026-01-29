@@ -6,6 +6,18 @@ export interface ChatSessionData {
     updatedAt: string;
 }
 
+export interface ChatResponse {
+  reply: string;
+  logs: any[];
+  title?: string;
+  sources?: {        
+    filename: string;
+    content: string;
+    page?: number;
+    score?: number;
+  }[];
+}
+
 const BASE_URL = 'http://localhost:3000'; 
 
 export const aiApi = {
@@ -20,12 +32,12 @@ export const aiApi = {
   },
 
   chat: async (message: string, sessionId: string) => {
-    const response = await axios.post<{ reply: string, logs: any[], title?: string }>(`${BASE_URL}/ai/chat`, { message, sessionId });
+    const response = await axios.post<ChatResponse>(`${BASE_URL}/ai/chat`, { message, sessionId });
     return response.data;
   },
 
   chatWithFile: async (formData: FormData) => {
-    const response = await axios.post<{ reply: string, logs: any[], title?: string }>(`${BASE_URL}/ai/chat/file`, formData, {
+    const response = await axios.post<ChatResponse>(`${BASE_URL}/ai/chat/file`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
@@ -50,4 +62,19 @@ export const aiApi = {
     const response = await axios.delete(`${BASE_URL}/ai/history?sessionId=${sessionId}`);
     return response.data;
   },
+
+  getNotes: async () => {
+    const response = await axios.get(`${BASE_URL}/ai/notes`);
+    return response.data;
+  },
+
+  createNote: async (title: string, content: string, tags: string[]) => {
+    const response = await axios.post(`${BASE_URL}/ai/notes`, { title, content, tags });
+    return response.data;
+  },
+
+  deleteNote: async (id: string) => {
+    const response = await axios.delete(`${BASE_URL}/ai/notes/${id}`);
+    return response.data;
+  }
 };
