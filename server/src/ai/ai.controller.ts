@@ -30,6 +30,12 @@ export class AiController {
     return this.aiService.getSessions();
   }
 
+  @Get('context/:sessionId')
+  async getContext(@Param('sessionId') sessionId: string) {
+    const docs = await this.aiService.getSessionFiles(sessionId); 
+    return docs;
+  }
+
   @Delete('history')
   async clearHistory(@Query('sessionId') sessionId: string) {
     return this.aiService.clearChatHistory(sessionId);

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
-import Mlo from './pages/MLO'
+import Mlo from './pages/MLO';
 import Memory from './pages/Memory';
 import type { TabType, AiState } from './types';
 
@@ -24,7 +24,7 @@ export default function App() {
         aiState={aiState} 
       />
 
-      <div className="flex-1 flex flex-col bg-black relative">
+      <div className="flex-1 flex flex-col bg-black relative overflow-hidden non-draggable">
         <div className="absolute top-2 right-1.5 z-50 flex gap-2">
            <div className="w-3 h-3 bg-neutral-400 hover:bg-neutral-600 transition-colors cursor-pointer non-draggable"></div>
         </div>

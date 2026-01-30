@@ -33,7 +33,7 @@ export class AiService {
   ) {
     this.model = new ChatOpenAI({
       modelName: 'gpt-3.5-turbo',
-      temperature: 0.5,
+      temperature: 0.3,
       openAIApiKey: process.env.OPENAI_API_KEY,
     });
 
@@ -84,11 +84,12 @@ export class AiService {
 
   async processChatWithFile(message: string, sessionId: string, file: any) {
     const fileLogs: { level: string; message: string }[] = [];
+    let fileContent = '';
     
     if (file) {
-      fileLogs.push({ level: 'INFO', message: `Receiving file: ${file.originalname}` });
+      const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+      fileLogs.push({ level: 'INFO', message: `Receiving file: ${originalName}` });
       
-      let fileContent = '';
       try {
         if (file.mimetype === 'application/pdf') {
           const pdfData = await pdf(file.buffer);
@@ -118,7 +119,7 @@ export class AiService {
                     content: doc.pageContent,
                     embedding: embedding,
                     metadata: {
-                        filename: file.originalname,
+                        filename: originalName,
                         chunkIndex: i, 
                         uploadedAt: new Date(),
                         sessionId: sessionId
@@ -138,7 +139,8 @@ export class AiService {
       }
     }
 
-    const chatResult = await this.chat(message, sessionId);
+    const contextToSend = fileContent ? fileContent.substring(0, 4000) : undefined;
+    const chatResult = await this.chat(message, sessionId, contextToSend);
     
     return {
         ...chatResult,
@@ -146,7 +148,7 @@ export class AiService {
     };
   }
 
-  async chat(message: string, sessionId: string) {
+  async chat(message: string, sessionId: string, directContext?: string) {
     const logs: { level: string; message: string }[] = [];
     logs.push({ level: 'INFO', message: `User Input: "${message}"` });
 
@@ -182,29 +184,56 @@ export class AiService {
 
     let ragContext = "";
     let sources: any[] = [];
-    try {
-      const results = await this.vectorStore.similaritySearch(message, 5);
-      if (results.length > 0) {
-        ragContext = results.map(doc => `[참고 자료 (${doc.metadata?.filename || '문서'})]:\n${doc.pageContent}`).join("\n\n");
-        logs.push({ level: 'SUCCESS', message: `RAG: Found ${results.length} relevant chunks.` });
+    let isFileMode = false;
 
-        sources = results.map(doc => ({
-            filename: doc.metadata?.filename || 'Unknown Source',
-            content: doc.pageContent.slice(0, 200) + '...', 
-            page: doc.metadata?.page,
-            score: 0 
-        }));
-      } else {
-        ragContext = "관련된 저장 문서가 없습니다.";
-      }
-    } catch (e) { ragContext = "RAG 검색 불가"; }
+    if (directContext) {
+        isFileMode = true;
+        ragContext = `[★긴급: 사용자가 방금 업로드한 파일 내용]:\n${directContext}\n\n(위 내용은 사용자가 방금 업로드한 문서입니다. 사용자의 질문이 '요약', '정리', '분석'이라면 무조건 이 내용을 바탕으로 답변하고, 절대 할 일로 등록하지 마세요.)`;
+        logs.push({ level: 'SUCCESS', message: 'Using direct file context.' });
+    } else {
+        try {
+            let results = await this.vectorStore.similaritySearch(message, 5);
+            
+            if (results.length === 0) {
+              const recentDocs = await this.vectorDocModel
+                .find({ 'metadata.sessionId': sessionId })
+                .sort({ 'metadata.uploadedAt': -1 }) 
+                .limit(5);
+
+              if (recentDocs.length > 0) {
+                results = recentDocs.map(d => ({
+                   pageContent: d.content,
+                   metadata: d.metadata
+                })) as any;
+                logs.push({ level: 'WARNING', message: `Search failed. Fallback to latest ${recentDocs.length} docs.` });
+              }
+            }
+
+            if (results.length > 0) {
+                ragContext = results.map(doc => `[참고 자료 (${doc.metadata?.filename || '문서'})]:\n${doc.pageContent}`).join("\n\n");
+                logs.push({ level: 'SUCCESS', message: `RAG: Found ${results.length} relevant chunks.` });
+
+                sources = results.map(doc => ({
+                    filename: doc.metadata?.filename || 'Unknown Source',
+                    content: doc.pageContent.slice(0, 200) + '...', 
+                    page: doc.metadata?.page,
+                    score: 0 
+                }));
+            } else {
+                ragContext = "관련된 저장 문서가 없습니다.";
+            }
+        } catch (e) { 
+            console.error(e);
+            ragContext = "RAG 검색 중 오류 발생"; 
+        }
+    }
 
     const tools = [
       {
         type: 'function' as const,
         function: {
           name: 'add_todo',
-          description: '새로운 일정을 추가합니다. 사용자의 발언에서 새로운 계획, 약속, 할 일이 감지되면 사용하세요.',
+          description: '새로운 일정을 추가합니다. 주의: 문서나 파일의 내용을 요약, 정리, 분석해달라는 요청은 일정이 아닙니다. 절대 이 도구를 호출하지 마세요.',
           parameters: {
             type: 'object',
             properties: {
@@ -219,7 +248,7 @@ export class AiService {
         type: 'function' as const,
         function: {
           name: 'complete_todo',
-          description: '기존 일정을 완료 처리합니다. 사용자가 특정 일정을 끝냈거나 달성했다고 할 때 사용하세요.',
+          description: '기존 일정을 완료 처리합니다.',
           parameters: {
             type: 'object',
             properties: {
@@ -233,7 +262,7 @@ export class AiService {
         type: 'function' as const,
         function: {
           name: 'update_todo',
-          description: '기존 일정의 내용이나 날짜를 수정합니다. 사용자가 약속 시간을 바꾸거나 내용을 변경하고 싶어할 때 사용하세요.',
+          description: '기존 일정의 내용이나 날짜를 수정합니다.',
           parameters: {
             type: 'object',
             properties: {
@@ -252,28 +281,22 @@ export class AiService {
 
       const systemPrompt = `
         당신은 유능하고 전문적인 AI 비서 'Jarvis'입니다.
-        사용자와 자연스럽게 대화하며 정확하고 신속하게 업무를 지원하세요.
-
+        
         [상황 정보]
         - 날짜: ${this.getTodayStr()}
-        - 미완료 업무 목록(ID 참조용): 
+        - 할 일 목록: 
         ${todoContext}
-        - 참고 지식(RAG - 사용자가 업로드한 문서 내용): 
+        - 참고 자료(RAG): 
         ${ragContext}
 
-        [업무 처리 가이드]
-        1. 일정 관리: 대화의 맥락을 정확히 파악하여 도구를 선택하세요. 
-           - 미래의 새로운 계획은 'add_todo'를 사용합니다.
-           - 과거형으로 끝마침을 표현하면, 목록에서 ID를 찾아 'complete_todo'를 사용합니다.
-           - 시간이나 내용의 변경을 요청하면 'update_todo'를 사용합니다.
-           - 사용자가 이미 완료했다고 말한 일은 절대 새로 추가하지 않습니다.
-        2. 지식 활용: '참고 지식(RAG)'에 정보가 있다면 이를 최우선으로 활용하여 상세히 답변하세요.
-           - 문서 내용을 인용할 때는 "문서에 따르면..."과 같이 출처를 밝히세요.
-           - 사용자에게 답변할 때는 문서의 내용을 요약하거나 질문에 대한 정확한 답을 제시하세요.
-        3. 커뮤니케이션: 불필요한 감탄사나 이모티콘을 배제하고, 정중하고 신뢰감 있는 비서의 톤을 유지하세요.
-      `;
+        [★최우선 명령★]
+        ${isFileMode ? "현재 사용자가 파일을 업로드했습니다. 사용자의 질문이 '요약해줘', '알려줘', '설명해줘' 등이라면, 절대 'add_todo'를 사용하지 말고 제공된 파일 내용을 바탕으로 답변만 하세요." : ""}
 
-      logs.push({ level: 'WARNING', message: 'Generating response...' });
+        [업무 처리 가이드]
+        1. '참고 자료'가 존재한다면, 사용자의 질문에 대해 그 자료를 기반으로 답변하는 것을 최우선으로 하세요. 
+        2. '요약', '정리', '분석'은 할 일(Todo)이 아닙니다. 답변으로 처리하세요.
+        3. 사용자가 명확하게 "일정에 추가해줘", "할 일로 등록해"라고 할 때만 'add_todo'를 사용하세요.
+      `;
 
       const result = await modelWithTools.invoke([
         new SystemMessage(systemPrompt),
@@ -289,6 +312,11 @@ export class AiService {
           const args = toolCall.args;
 
           if (toolCall.name === 'add_todo') {
+             if ((ragContext.length > 50 || isFileMode) && (args.text.includes('요약') || args.text.includes('정리') || args.text.includes('분석'))) {
+                 finalReply = "파일 내용을 확인했습니다. 요약해 드리겠습니다. (일정 등록 건너뜀)";
+                 continue; 
+             }
+
             const targetDate = args.date || this.getTodayStr();
             await this.todoService.create({ text: args.text, date: targetDate, done: false });
             const confirmation = `일정에 [${args.text}] 항목을 추가했습니다.`;
@@ -346,21 +374,26 @@ export class AiService {
     }));
   }
 
-  async clearChatHistory(sessionId: string) {
-    console.log(`[삭제 요청] ${sessionId} - Hard Delete (즉시 삭제) 수행`);
+  async getSessionFiles(sessionId: string) {
+    const docs = await this.vectorDocModel
+      .find({ 'metadata.sessionId': sessionId })
+      .sort({ 'metadata.uploadedAt': -1 }); 
+    return docs.map(doc => ({
+      filename: doc.metadata?.filename || 'Unknown File',
+      content: doc.content.slice(0, 300) + '...', 
+    }));
+  }
 
+  async clearChatHistory(sessionId: string) {
     try {
       Promise.all([
         this.chatSessionModel.deleteOne({ sessionId }),
-
         this.chatLogModel.deleteMany({ sessionId }),
-        
         this.vectorDocModel.deleteMany({ 'metadata.sessionId': sessionId })
       ]);
 
       return { success: true };
     } catch (e) {
-      console.error('삭제 중 오류 발생:', e);
       throw new Error('채팅 내역 삭제 실패');
     }
   }

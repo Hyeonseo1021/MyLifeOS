@@ -40,3 +40,11 @@
 .read-the-docs {
   color: #888;
 }
+
+.draggable-area {
+  -webkit-app-region: drag;
+}
+
+.non-draggable {
+  -webkit-app-region: no-drag;
+}

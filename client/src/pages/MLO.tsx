@@ -25,9 +25,15 @@ export default function Mlo() {
         const list = await aiApi.getSessions();
         if (list && list.length > 0) {
             setSessionList(list);
-            setCurrentSessionId(list[0].sessionId);
+            const firstSessionId = list[0].sessionId;
+            setCurrentSessionId(firstSessionId);
+
+            const sources = await aiApi.getContextFiles(firstSessionId);
+            setContextSources(sources || []);
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+        console.error(e);
+    }
   };
 
   useEffect(() => {
@@ -58,10 +64,17 @@ export default function Mlo() {
     setContextSources([]);
   };
 
-  const handleSelectSession = (sessionId: string) => {
-      setCurrentSessionId(sessionId);
-      setContextSources([]);
-  };
+  const handleSelectSession = async (sessionId: string) => {
+    setCurrentSessionId(sessionId);
+    try {
+        const sources = await aiApi.getContextFiles(sessionId);
+        setContextSources(sources || []);
+        addLog('INFO', `Loaded context for session: ${sessionId}`);
+    } catch (e) {
+        console.error("Failed to load context:", e);
+        setContextSources([]);
+    }
+};
 
   const handleContextUpdate = (sources: SourceItem[]) => {
       setContextSources(sources);
@@ -105,7 +118,7 @@ export default function Mlo() {
       
       <div className="mb-3 flex items-center justify-between shrink-0 px-2">
         <h1 className="text-xl font-light tracking-[0.2em] text-gray-200">
-          MY LIFE OS <span className="text-neutral-600 text-xs ml-2">v2.2</span>
+          MY LIFE OS
         </h1>
         <div className="text-[10px] text-green-500 border border-green-900 bg-green-900/20 px-2 py-0.5 rounded flex items-center gap-2">
             SYSTEM ONLINE
