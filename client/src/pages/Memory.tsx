@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { aiApi } from '../api/ai';
 
 interface NoteItem {
@@ -11,8 +11,11 @@ interface NoteItem {
 
 export default function Memory() {
   const [notes, setNotes] = useState<NoteItem[]>([]);
-  const [isWriteMode, setIsWriteMode] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'write' | 'detail' | 'edit'>('list');
+  const [selectedNote, setSelectedNote] = useState<NoteItem | null>(null);
+  
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTag, setSelectedTag] = useState<string>('ALL');
 
   const fetchNotes = async () => {
     try {
@@ -27,110 +30,212 @@ export default function Memory() {
     fetchNotes();
   }, []);
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    if (!confirm('이 기록을 영구히 삭제하시겠습니까?')) return;
-    await aiApi.deleteNote(id);
+  const allTags = useMemo(() => {
+    const tags = new Set<string>(['ALL']);
+    notes.forEach(note => {
+      if (note.tags && Array.isArray(note.tags)) {
+        note.tags.forEach(tag => {
+          if (tag) tags.add(tag);
+        });
+      }
+    });
+    return Array.from(tags).sort((a, b) => {
+      if (a === 'ALL') return -1;
+      if (b === 'ALL') return 1;
+      return a.localeCompare(b);
+    });
+  }, [notes]);
+
+  const filteredNotes = useMemo(() => {
+    let result = notes;
+
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      result = result.filter((n) =>
+        n.content.toLowerCase().includes(lowerQuery) ||
+        n.title?.toLowerCase().includes(lowerQuery) ||
+        n.tags.some((t) => t.toLowerCase().includes(lowerQuery))
+      );
+    }
+
+    if (selectedTag !== 'ALL') {
+      result = result.filter((n) => n.tags.includes(selectedTag));
+    }
+
+    return result;
+  }, [notes, searchQuery, selectedTag]);
+
+  const handleNoteClick = (note: NoteItem) => {
+    setSelectedNote(note);
+    setViewMode('detail');
+  };
+
+  const handleBack = () => {
+    setSelectedNote(null);
+    setViewMode('list');
     fetchNotes();
   };
 
-  const filteredNotes = notes.filter((n) =>
-    n.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    n.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    n.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const handleEdit = () => {
+    if (selectedNote) setViewMode('edit');
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+    await aiApi.deleteNote(id);
+    handleBack();
+  };
+
+  const noDrag = { WebkitAppRegion: 'no-drag' } as any;
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#050505] text-white font-sans overflow-hidden relative">
-      {!isWriteMode ? (
+    <div className="flex-1 flex flex-col h-full bg-[#050505] text-[#e0e0e0] font-serif overflow-hidden relative selection:bg-[#fff] selection:text-black">
+      
+      {viewMode === 'list' && (
         <>
-          <div className="pt-10 pb-6 px-10 flex justify-between items-end shrink-0">
-            <div>
-              <h1 className="text-4xl font-black tracking-tighter text-white uppercase">
-                MEMORY
-              </h1>
+          <div className="flex flex-col gap-6 pt-10 pb-6 px-8 md:px-12 shrink-0 bg-[#050505] z-10 border-b border-[#222]">
+            <div className="flex justify-between items-end">
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold tracking-[0.2em] text-[#fff] uppercase">
+                  MEMORY
+                </h1>
+                <p className="text-[#666] text-xs mt-2 font-sans tracking-wide">
+                  {notes.length} RECORDS
+                </p>
+              </div>
+              
+              <button
+                onClick={() => setViewMode('write')}
+                style={noDrag}
+                className="bg-[#eee] text-black border border-[#eee] px-5 py-2 text-[10px] md:text-xs font-bold hover:bg-white transition-all uppercase tracking-widest cursor-pointer shadow-lg"
+              >
+                + New Note
+              </button>
             </div>
-            <button
-              onClick={() => setIsWriteMode(true)}
-              // 버튼도 드래그 방지 직접 적용
-              style={{ WebkitAppRegion: 'no-drag' } as any}
-              className="bg-white text-black px-8 py-2.5 rounded text-xs font-black hover:bg-neutral-200 transition-all active:scale-95 shadow-2xl cursor-pointer"
-            >
-              + NEW
-            </button>
-          </div>
 
-          <div className="px-10 mb-10">
-            <div className="relative max-w-md">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="flex gap-2 overflow-x-auto max-w-full pb-2 md:pb-0 scrollbar-hide mask-linear">
+                {allTags.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => setSelectedTag(tag)}
+                    style={noDrag}
+                    className={`text-[10px] md:text-xs px-3 py-1 rounded-full border transition-all whitespace-nowrap uppercase tracking-wider cursor-pointer ${
+                      selectedTag === tag 
+                        ? 'bg-[#222] border-[#666] text-white' 
+                        : 'border-transparent text-[#666] hover:text-[#bbb]'
+                    }`}
+                  >
+                    {tag === 'ALL' ? 'VIEW ALL' : `#${tag}`}
+                  </button>
+                ))}
+              </div>
+
               <input
-                // 검색창 드래그 방지 직접 적용
-                style={{ WebkitAppRegion: 'no-drag', userSelect: 'text' } as any}
-                className="w-full bg-[#0a0a0a] border border-neutral-900 rounded-lg px-5 py-3 pl-10 text-sm outline-none focus:border-neutral-700 transition-all placeholder-neutral-800 text-white cursor-text"
-                placeholder="Search memories..."
+                style={{ ...noDrag, userSelect: 'text' }}
+                className="bg-transparent border-b border-[#333] py-1 text-sm outline-none focus:border-[#fff] transition-colors text-[#eee] w-full md:w-48 font-sans placeholder-[#444]"
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-10 pb-20 scrollbar-hide">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-8 text-left">
-              {filteredNotes.map((note) => (
-                <div key={note._id} className="group flex flex-col gap-3 cursor-pointer">
-                  <div className="aspect-[3/4] bg-[#0a0a0a] border border-neutral-900 rounded-sm p-6 relative overflow-hidden transition-all hover:border-neutral-700">
-                    <div className="h-full flex flex-col relative z-10">
-                      <p className="text-[12px] text-neutral-500 font-mono leading-relaxed line-clamp-[12] group-hover:text-neutral-300 transition-colors">
-                        {note.content}
-                      </p>
-                      <button
-                        onClick={(e) => handleDelete(e, note._id)}
-                        // 삭제 버튼 드래그 방지
-                        style={{ WebkitAppRegion: 'no-drag' } as any}
-                        className="mt-auto self-end opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:text-red-500 cursor-pointer"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+          <div className="flex-1 overflow-y-auto px-8 md:px-12 pb-20 scrollbar-thin scrollbar-thumb-[#333] scrollbar-track-transparent">
+            {filteredNotes.length === 0 ? (
+               <div className="flex flex-col items-center justify-center h-80 text-[#444]">
+                 <p className="italic font-serif text-lg">No notes found.</p>
+               </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-6 gap-y-12 pb-12 mt-10">
+                {filteredNotes.map((note) => (
+                  <div 
+                    key={note._id} 
+                    onClick={() => handleNoteClick(note)}
+                    className="group relative cursor-pointer w-full aspect-[2/3] bg-[#111] transition-all duration-300 hover:-translate-y-3 hover:shadow-[0_15px_30px_-5px_rgba(255,255,255,0.08)] border border-[#222] hover:border-[#555] flex flex-col"
+                  >
+                    <div className="absolute left-0 top-0 bottom-0 w-3 md:w-4 bg-[#1a1a1a] border-r border-[#333] z-10 box-border"></div>
+                    
+                    <div className="h-full flex flex-col p-3 pl-6 md:p-4 md:pl-8 overflow-hidden">
+                      <h3 className="text-xs md:text-sm font-bold text-[#eee] leading-snug line-clamp-4 font-serif group-hover:text-white break-words">
+                        {note.title || 'Untitled'}
+                      </h3>
+                      <div className="mt-auto border-t border-[#333] pt-2">
+                        {note.tags && note.tags.length > 0 && (
+                           <span className="block text-[9px] md:text-[10px] text-[#666] truncate font-sans uppercase tracking-wider group-hover:text-[#999]">
+                             {note.tags[0]}
+                           </span>
+                        )}
+                        <span className="block text-[8px] text-[#444] mt-1 font-mono">
+                          {new Date(note.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="px-1">
-                    <h3 className="text-[13px] font-bold text-neutral-200 truncate uppercase tracking-tight group-hover:text-white transition-colors">
-                      {note.title || 'UNTITLED_LOG'}
-                    </h3>
-                    <span className="text-[10px] text-neutral-600 font-mono block mt-1">
-                      {new Date(note.createdAt).toLocaleDateString('en-US').replace(/\//g, '.')}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
-      ) : (
-        <div className="absolute inset-0 z-[100] bg-[#050505] flex flex-col">
-          <div className="h-14 border-b border-neutral-900 flex items-center justify-between px-10 bg-[#050505] shrink-0 relative z-[101]">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsWriteMode(false)}
-                // 뒤로가기 버튼 드래그 방지
-                style={{ WebkitAppRegion: 'no-drag' } as any}
-                className="flex items-center gap-1.5 text-neutral-500 hover:text-white transition-colors group cursor-pointer"
-              >
-                <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                <span className="text-[10px] font-black uppercase tracking-widest">Back</span>
-              </button>
-              <div className="h-3 w-[1px] bg-neutral-800" />
-              <span className="text-[9px] font-mono text-neutral-700 uppercase tracking-[0.2em]">Archive_Commit_v2.1</span>
-            </div>
-            <span className="text-[9px] font-mono text-neutral-800 uppercase tracking-widest">System_Ready</span>
-          </div>
+      )}
 
-          <div className="flex-1 overflow-y-auto px-10 py-12 relative z-[100]">
-            <div className="max-w-4xl mx-auto flex flex-col gap-10">
-              <NoteEditor onSave={() => { setIsWriteMode(false); fetchNotes(); }} />
+      {(viewMode === 'write' || viewMode === 'edit') && (
+        <div className="absolute inset-0 z-[100] bg-[#050505] flex flex-col animate-fadeIn">
+          <TopBar onBack={handleBack} />
+          <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 scrollbar-thin scrollbar-thumb-[#333]">
+            <NoteEditor 
+              onSave={handleBack} 
+              initialData={viewMode === 'edit' ? selectedNote : null}
+            />
+          </div>
+        </div>
+      )}
+
+      {viewMode === 'detail' && selectedNote && (
+        <div className="absolute inset-0 z-[100] bg-[#050505] flex flex-col animate-fadeIn">
+          <TopBar onBack={handleBack} />
+          
+          <div className="flex-1 overflow-y-auto px-6 md:px-20 py-12 scrollbar-thin scrollbar-thumb-[#333]">
+            <div className="max-w-2xl mx-auto flex flex-col gap-10 min-h-[80vh]">
+              
+              <div className="flex flex-col gap-4 text-center pb-8 border-b border-[#333]">
+                 <h1 className="text-3xl md:text-5xl font-bold text-[#fff] font-serif leading-tight break-keep">
+                   {selectedNote.title || 'Untitled'}
+                 </h1>
+                 <div className="flex flex-col gap-1 items-center">
+                   <span className="text-xs text-[#666] font-sans tracking-widest uppercase">
+                     TOTAL {new Date(selectedNote.createdAt).toLocaleDateString()}
+                   </span>
+                   {selectedNote.tags && selectedNote.tags.length > 0 && (
+                      <div className="flex gap-2 mt-2">
+                        {selectedNote.tags.map(t => (
+                           <span key={t} className="text-[10px] text-[#555] border border-[#333] px-2 py-0.5 uppercase tracking-wider">#{t}</span>
+                        ))}
+                      </div>
+                   )}
+                 </div>
+              </div>
+
+              <div className="text-lg text-[#ddd] leading-loose whitespace-pre-wrap font-serif text-justify">
+                {selectedNote.content}
+              </div>
+
+              <div className="mt-auto pt-12 flex justify-end gap-6 border-t border-[#333]">
+                  <button
+                    onClick={handleEdit}
+                    style={noDrag}
+                    className="text-xs font-bold text-[#888] hover:text-white uppercase tracking-widest transition-colors cursor-pointer"
+                  >
+                    EDIT
+                  </button>
+                  <button
+                    onClick={() => handleDelete(selectedNote._id)}
+                    style={noDrag}
+                    className="text-xs font-bold text-[#522] hover:text-[#f44] uppercase tracking-widest transition-colors cursor-pointer"
+                  >
+                    DELETE
+                  </button>
+              </div>
             </div>
           </div>
         </div>
@@ -139,90 +244,94 @@ export default function Memory() {
   );
 }
 
-function NoteEditor({ onSave }: { onSave: () => void }) {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [tags, setTags] = useState('');
+function TopBar({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="h-14 md:h-16 flex items-center justify-between px-6 md:px-8 shrink-0 bg-[#050505] border-b border-[#222] sticky top-0 z-50">
+      <button
+        onClick={onBack}
+        style={{ WebkitAppRegion: 'no-drag' } as any}
+        className="flex items-center gap-3 text-[#666] hover:text-[#fff] transition-colors group cursor-pointer"
+      >
+        <span className="text-sm font-serif italic">← Back</span>
+      </button>
+    </div>
+  );
+}
+
+function NoteEditor({ onSave, initialData }: { onSave: () => void, initialData?: NoteItem | null }) {
+  const [title, setTitle] = useState(initialData?.title || '');
+  const [content, setContent] = useState(initialData?.content || '');
+  const [tags, setTags] = useState(initialData?.tags ? initialData.tags.join(' ') : '');
+
+  const inputStyle = { WebkitAppRegion: 'no-drag', userSelect: 'text', cursor: 'text' } as any;
+  const btnStyle = { WebkitAppRegion: 'no-drag', cursor: 'pointer' } as any;
 
   const handleSave = async () => {
     if (!content.trim()) return;
+    
     const processedTags = tags.split(' ').map((t) => t.trim()).filter(Boolean);
+    const finalTags = processedTags.length > 0 ? processedTags : ['Note'];
+
     try {
-      await aiApi.createNote(title, content, processedTags.length > 0 ? processedTags : ['Note']);
+      if (initialData) {
+        if ((aiApi as any).updateNote) {
+            await (aiApi as any).updateNote(initialData._id, title, content, finalTags);
+        } else {
+            await aiApi.createNote(title, content, finalTags);
+        }
+      } else {
+        await aiApi.createNote(title, content, finalTags);
+      }
       onSave();
     } catch (e) {
       console.error(e);
+      alert('Failed to save.');
     }
   };
 
   return (
-    <div className="flex flex-col gap-12 w-full">
-      <div className="flex flex-col gap-4 relative">
-        <label
-          htmlFor="note-subject"
-          className="block w-max text-[10px] font-black text-neutral-600 uppercase tracking-[0.5em] font-mono select-none pointer-events-none"
-        >
-          01. Subject_
-        </label>
+    <div className="flex flex-col gap-8 w-full max-w-2xl mx-auto p-4 md:p-12">
+      <div className="flex flex-col gap-2">
+        <label className="text-xs text-[#555] font-sans tracking-widest uppercase">Title</label>
         <input
-          id="note-subject"
           autoFocus
-          // [핵심] 드래그 방지 & 텍스트 선택 허용 직접 주입
-          style={{ WebkitAppRegion: 'no-drag', userSelect: 'text' } as any}
-          className="block w-full bg-transparent text-5xl font-black text-white outline-none placeholder-neutral-900 tracking-tighter py-2 border-b border-transparent focus:border-neutral-800 transition-colors cursor-text relative z-10"
-          placeholder="TITLE"
+          style={inputStyle}
+          className="block w-full bg-transparent text-3xl md:text-4xl font-bold font-serif text-[#fff] outline-none placeholder-[#333] pb-2 border-b border-[#333] focus:border-[#888] transition-colors"
+          placeholder="Enter title..."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
       </div>
 
-      <div className="flex flex-col gap-4 relative">
-        <label
-          htmlFor="note-content"
-          className="block w-max text-[10px] font-black text-neutral-600 uppercase tracking-[0.5em] font-mono select-none pointer-events-none"
-        >
-          02. Content_Body_
-        </label>
-        
+      <div className="flex flex-col gap-2 flex-1">
+        <label className="text-xs text-[#555] font-sans tracking-widest uppercase">Content</label>
         <textarea
-          id="note-content"
-          // [핵심] textarea는 이 속성이 없으면 상위 드래그 속성을 무조건 따라갑니다.
-          style={{ WebkitAppRegion: 'no-drag', userSelect: 'text' } as any}
-          className="block w-full min-h-[500px] bg-transparent text-xl text-white outline-none resize-none placeholder-neutral-900 leading-relaxed font-normal py-2 border-l-2 border-transparent focus:border-neutral-800 transition-colors cursor-text relative z-50"
-          placeholder="Input data here..."
+          style={inputStyle}
+          className="block w-full min-h-[60vh] bg-transparent text-lg text-[#ddd] outline-none resize-none placeholder-[#333] leading-loose font-serif border-none p-0"
+          placeholder="Write your note here..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
       </div>
 
-      <div className="flex flex-col gap-10 border-t border-neutral-900 pt-10 mb-20 relative">
-        <div className="flex flex-col gap-4">
-          <label
-            htmlFor="note-tags"
-            className="block w-max text-[10px] font-black text-neutral-600 uppercase tracking-[0.5em] font-mono select-none pointer-events-none"
-          >
-            03. Index_Tags_
-          </label>
+      <div className="flex items-end justify-between pt-6 border-t border-[#333]">
+        <div className="flex flex-col gap-2 w-full max-w-[300px]">
+          <label className="text-xs text-[#555] font-sans tracking-widest uppercase">Tags (Optional)</label>
           <input
-            id="note-tags"
-            // [핵심] 태그 입력창에도 동일하게 적용
-            style={{ WebkitAppRegion: 'no-drag', userSelect: 'text' } as any}
-            className="block w-full bg-transparent text-lg text-neutral-400 outline-none placeholder-neutral-900 font-mono py-2 border-b border-transparent focus:border-neutral-800 transition-colors cursor-text relative z-10"
-            placeholder="Tag01 Tag02..."
+            style={inputStyle}
+            className="bg-transparent text-xs text-[#888] outline-none placeholder-[#333] w-full font-sans border-b border-[#333] pb-1 focus:border-[#666] transition-colors"
+            placeholder="e.g. idea diary project"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
           />
         </div>
-        <div className="flex justify-end pt-4">
-          <button
-            onClick={handleSave}
-            // 버튼 클릭도 막힐 수 있으므로 추가
-            style={{ WebkitAppRegion: 'no-drag' } as any}
-            className="bg-white text-black px-8 py-2.5 text-[10px] font-black uppercase tracking-[0.3em] hover:bg-neutral-200 transition-all active:scale-95 shadow-xl cursor-pointer relative z-10"
-          >
-            Save_Commit
-          </button>
-        </div>
+        <button
+          onClick={handleSave}
+          style={btnStyle}
+          className="bg-[#eee] text-black px-8 py-2 text-xs font-bold uppercase tracking-widest hover:bg-white transition-all shadow-md ml-4"
+        >
+          Save
+        </button>
       </div>
     </div>
   );
