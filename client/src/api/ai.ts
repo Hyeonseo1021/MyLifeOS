@@ -53,6 +53,11 @@ export const aiApi = {
     return response.data;
   },
 
+  getContextFiles: async (sessionId: string) => {
+    const response = await axios.get(`${BASE_URL}/ai/context/${sessionId}`);
+    return response.data; 
+  },
+
   clearHistory: async (sessionId: string) => {
     const response = await axios.delete(`${BASE_URL}/ai/history?sessionId=${sessionId}`);
     return response.data;
