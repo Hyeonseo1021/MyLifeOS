@@ -1,4 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Noto+Serif+KR:wght@300;400;600;700&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "IBM Plex Sans KR", sans-serif;
+  --font-serif: "Noto Serif KR", serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+@layer base {
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background-color: #0a0a0a;
+    color: #e0e0e0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
 
 .draggable-area {
   -webkit-app-region: drag;
@@ -8,4 +26,19 @@
 .draggable-area input,
 .draggable-area .cursor-pointer {
   -webkit-app-region: no-drag;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0a; 
+}
+::-webkit-scrollbar-thumb {
+  background: #333; 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555; 
 }

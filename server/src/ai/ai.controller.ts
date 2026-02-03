@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Query, Delete, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Query, Put, Delete, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AiService } from './ai.service';
 
@@ -60,6 +60,14 @@ export class AiController {
   @Get('notes')
   async getNotes() {
     return this.aiService.getNotes();
+  }
+
+  @Put('notes/:id')
+  async updateNote(
+    @Param('id') id: string, 
+    @Body() body: { title: string; content: string; tags: string[] }
+  ) {
+    return this.aiService.updateNote(id, body.title, body.content, body.tags);
   }
 
   @Delete('notes/:id')

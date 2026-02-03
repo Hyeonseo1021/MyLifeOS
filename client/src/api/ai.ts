@@ -78,6 +78,11 @@ export const aiApi = {
     return response.data;
   },
 
+  updateNote: async (id: string, title: string, content: string, tags: string[]) => {
+    const response = await axios.put(`${BASE_URL}/ai/notes/${id}`, { title, content, tags });
+    return response.data;
+  },
+
   deleteNote: async (id: string) => {
     const response = await axios.delete(`${BASE_URL}/ai/notes/${id}`);
     return response.data;
