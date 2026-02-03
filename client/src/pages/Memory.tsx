@@ -89,17 +89,17 @@ export default function Memory() {
   const noDrag = { WebkitAppRegion: 'no-drag' } as any;
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#050505] text-[#e0e0e0] font-serif overflow-hidden relative selection:bg-[#fff] selection:text-black">
+    <div className="flex-1 flex flex-col h-full bg-[#0a0a0a] text-gray-100  overflow-hidden relative selection:bg-[#fff] selection:text-black">
       
       {viewMode === 'list' && (
         <>
-          <div className="flex flex-col gap-6 pt-10 pb-6 px-8 md:px-12 shrink-0 bg-[#050505] z-10 border-b border-[#222]">
+          <div className="flex flex-col gap-6 pt-10 pb-6 px-8 md:px-12 shrink-0 bg-[#0a0a0a] z-10 border-b border-[#333]">
             <div className="flex justify-between items-end">
               <div>
-                <h1 className="text-xl md:text-2xl font-bold tracking-[0.2em] text-[#fff] uppercase">
+                <h1 className="text-xl md:text-2xl font-bold tracking-[0.2em] text-white uppercase">
                   MEMORY
                 </h1>
-                <p className="text-[#666] text-xs mt-2 font-sans tracking-wide">
+                <p className="text-[#888] text-xs mt-2  tracking-wide">
                   {notes.length} RECORDS
                 </p>
               </div>
@@ -107,7 +107,7 @@ export default function Memory() {
               <button
                 onClick={() => setViewMode('write')}
                 style={noDrag}
-                className="bg-[#eee] text-black border border-[#eee] px-5 py-2 text-[10px] md:text-xs font-bold hover:bg-white transition-all uppercase tracking-widest cursor-pointer shadow-lg"
+                className="bg-white text-black border border-white px-5 py-2 text-[10px] md:text-xs font-bold hover:bg-gray-200 transition-all uppercase tracking-widest cursor-pointer shadow-lg"
               >
                 + New Note
               </button>
@@ -122,8 +122,8 @@ export default function Memory() {
                     style={noDrag}
                     className={`text-[10px] md:text-xs px-3 py-1 rounded-full border transition-all whitespace-nowrap uppercase tracking-wider cursor-pointer ${
                       selectedTag === tag 
-                        ? 'bg-[#222] border-[#666] text-white' 
-                        : 'border-transparent text-[#666] hover:text-[#bbb]'
+                        ? 'bg-[#333] border-[#888] text-white font-bold' 
+                        : 'border-[#333] text-[#888] hover:border-[#666] hover:text-[#ddd]'
                     }`}
                   >
                     {tag === 'ALL' ? 'VIEW ALL' : `#${tag}`}
@@ -133,7 +133,7 @@ export default function Memory() {
 
               <input
                 style={{ ...noDrag, userSelect: 'text' }}
-                className="bg-transparent border-b border-[#333] py-1 text-sm outline-none focus:border-[#fff] transition-colors text-[#eee] w-full md:w-48 font-sans placeholder-[#444]"
+                className="bg-transparent border-b border-[#444] py-1 text-sm outline-none focus:border-[#fff] transition-colors text-white w-full md:w-48  placeholder-[#666]"
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -141,10 +141,10 @@ export default function Memory() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-8 md:px-12 pb-20 scrollbar-thin scrollbar-thumb-[#333] scrollbar-track-transparent">
+          <div className="flex-1 overflow-y-auto px-8 md:px-12 pb-20 scrollbar-thin scrollbar-thumb-[#444] scrollbar-track-transparent">
             {filteredNotes.length === 0 ? (
-               <div className="flex flex-col items-center justify-center h-80 text-[#444]">
-                 <p className="italic font-serif text-lg">No notes found.</p>
+               <div className="flex flex-col items-center justify-center h-80 text-[#666]">
+                 <p className="italic  text-lg">No notes found.</p>
                </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-6 gap-y-12 pb-12 mt-10">
@@ -152,21 +152,21 @@ export default function Memory() {
                   <div 
                     key={note._id} 
                     onClick={() => handleNoteClick(note)}
-                    className="group relative cursor-pointer w-full aspect-[2/3] bg-[#111] transition-all duration-300 hover:-translate-y-3 hover:shadow-[0_15px_30px_-5px_rgba(255,255,255,0.08)] border border-[#222] hover:border-[#555] flex flex-col"
+                    className="group relative cursor-pointer w-full aspect-[2/3] bg-[#1a1a1a] transition-all duration-300 hover:-translate-y-3 hover:shadow-[0_15px_30px_-5px_rgba(255,255,255,0.1)] border border-[#333] hover:border-[#777] flex flex-col"
                   >
-                    <div className="absolute left-0 top-0 bottom-0 w-3 md:w-4 bg-[#1a1a1a] border-r border-[#333] z-10 box-border"></div>
+                    <div className="absolute left-0 top-0 bottom-0 w-3 md:w-4 bg-[#252525] border-r border-[#444] z-10 box-border"></div>
                     
                     <div className="h-full flex flex-col p-3 pl-6 md:p-4 md:pl-8 overflow-hidden">
-                      <h3 className="text-xs md:text-sm font-bold text-[#eee] leading-snug line-clamp-4 font-serif group-hover:text-white break-words">
+                      <h3 className="text-xs md:text-sm font-bold text-gray-200 leading-snug line-clamp-4  group-hover:text-white break-words">
                         {note.title || 'Untitled'}
                       </h3>
                       <div className="mt-auto border-t border-[#333] pt-2">
                         {note.tags && note.tags.length > 0 && (
-                           <span className="block text-[9px] md:text-[10px] text-[#666] truncate font-sans uppercase tracking-wider group-hover:text-[#999]">
+                           <span className="block text-[9px] md:text-[10px] text-[#888] truncate  uppercase tracking-wider group-hover:text-[#bbb]">
                              {note.tags[0]}
                            </span>
                         )}
-                        <span className="block text-[8px] text-[#444] mt-1 font-mono">
+                        <span className="block text-[8px] text-[#666] mt-1  group-hover:text-[#888]">
                           {new Date(note.createdAt).toLocaleDateString()}
                         </span>
                       </div>
@@ -180,43 +180,44 @@ export default function Memory() {
       )}
 
       {(viewMode === 'write' || viewMode === 'edit') && (
-        <div className="absolute inset-0 z-[100] bg-[#050505] flex flex-col animate-fadeIn">
+        <div className="absolute inset-0 z-[100] bg-[#0a0a0a] flex flex-col animate-fadeIn">
           <TopBar onBack={handleBack} />
-          <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 scrollbar-thin scrollbar-thumb-[#333]">
+          <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 scrollbar-thin scrollbar-thumb-[#444]">
             <NoteEditor 
               onSave={handleBack} 
               initialData={viewMode === 'edit' ? selectedNote : null}
+              key={viewMode === 'edit' && selectedNote ? selectedNote._id : 'new'}
             />
           </div>
         </div>
       )}
 
       {viewMode === 'detail' && selectedNote && (
-        <div className="absolute inset-0 z-[100] bg-[#050505] flex flex-col animate-fadeIn">
+        <div className="absolute inset-0 z-[100] bg-[#0a0a0a] flex flex-col animate-fadeIn">
           <TopBar onBack={handleBack} />
           
-          <div className="flex-1 overflow-y-auto px-6 md:px-20 py-12 scrollbar-thin scrollbar-thumb-[#333]">
+          <div className="flex-1 overflow-y-auto px-6 md:px-20 py-12 scrollbar-thin scrollbar-thumb-[#444]">
             <div className="max-w-2xl mx-auto flex flex-col gap-10 min-h-[80vh]">
               
               <div className="flex flex-col gap-4 text-center pb-8 border-b border-[#333]">
-                 <h1 className="text-3xl md:text-5xl font-bold text-[#fff] font-serif leading-tight break-keep">
+                 <h1 className="text-3xl md:text-5xl font-bold text-white  leading-tight break-keep">
                    {selectedNote.title || 'Untitled'}
                  </h1>
                  <div className="flex flex-col gap-1 items-center">
-                   <span className="text-xs text-[#666] font-sans tracking-widest uppercase">
+                   <span className="text-xs text-[#888]  tracking-widest uppercase">
                      TOTAL {new Date(selectedNote.createdAt).toLocaleDateString()}
                    </span>
                    {selectedNote.tags && selectedNote.tags.length > 0 && (
                       <div className="flex gap-2 mt-2">
                         {selectedNote.tags.map(t => (
-                           <span key={t} className="text-[10px] text-[#555] border border-[#333] px-2 py-0.5 uppercase tracking-wider">#{t}</span>
+                           <span key={t} className="text-[10px] text-[#888] border border-[#444] px-2 py-0.5 uppercase tracking-wider">#{t}</span>
                         ))}
                       </div>
                    )}
                  </div>
               </div>
 
-              <div className="text-lg text-[#ddd] leading-loose whitespace-pre-wrap font-serif text-justify">
+              <div className="text-lg text-[#eee] leading-loose whitespace-pre-wrap  text-justify">
                 {selectedNote.content}
               </div>
 
@@ -224,14 +225,14 @@ export default function Memory() {
                   <button
                     onClick={handleEdit}
                     style={noDrag}
-                    className="text-xs font-bold text-[#888] hover:text-white uppercase tracking-widest transition-colors cursor-pointer"
+                    className="text-xs font-bold text-[#888] hover:text-white uppercase tracking-widest transition-colors cursor-pointer border border-transparent hover:border-[#666] px-3 py-1"
                   >
                     EDIT
                   </button>
                   <button
                     onClick={() => handleDelete(selectedNote._id)}
                     style={noDrag}
-                    className="text-xs font-bold text-[#522] hover:text-[#f44] uppercase tracking-widest transition-colors cursor-pointer"
+                    className="text-xs font-bold text-[#b55] hover:text-[#f66] uppercase tracking-widest transition-colors cursor-pointer border border-transparent hover:border-[#833] px-3 py-1"
                   >
                     DELETE
                   </button>
@@ -246,13 +247,13 @@ export default function Memory() {
 
 function TopBar({ onBack }: { onBack: () => void }) {
   return (
-    <div className="h-14 md:h-16 flex items-center justify-between px-6 md:px-8 shrink-0 bg-[#050505] border-b border-[#222] sticky top-0 z-50">
+    <div className="h-14 md:h-16 flex items-center justify-between px-6 md:px-8 shrink-0 bg-[#0a0a0a] border-b border-[#333] sticky top-0 z-50">
       <button
         onClick={onBack}
         style={{ WebkitAppRegion: 'no-drag' } as any}
-        className="flex items-center gap-3 text-[#666] hover:text-[#fff] transition-colors group cursor-pointer"
+        className="flex items-center gap-3 text-[#888] hover:text-white transition-colors group cursor-pointer"
       >
-        <span className="text-sm font-serif italic">← Back</span>
+        <span className="text-sm  italic">← Back</span>
       </button>
     </div>
   );
@@ -262,6 +263,18 @@ function NoteEditor({ onSave, initialData }: { onSave: () => void, initialData?:
   const [title, setTitle] = useState(initialData?.title || '');
   const [content, setContent] = useState(initialData?.content || '');
   const [tags, setTags] = useState(initialData?.tags ? initialData.tags.join(' ') : '');
+
+  useEffect(() => {
+    if (initialData) {
+      setTitle(initialData.title || '');
+      setContent(initialData.content || '');
+      setTags(initialData.tags ? initialData.tags.join(' ') : '');
+    } else {
+      setTitle('');
+      setContent('');
+      setTags('');
+    }
+  }, [initialData]);
 
   const inputStyle = { WebkitAppRegion: 'no-drag', userSelect: 'text', cursor: 'text' } as any;
   const btnStyle = { WebkitAppRegion: 'no-drag', cursor: 'pointer' } as any;
@@ -274,11 +287,7 @@ function NoteEditor({ onSave, initialData }: { onSave: () => void, initialData?:
 
     try {
       if (initialData) {
-        if ((aiApi as any).updateNote) {
-            await (aiApi as any).updateNote(initialData._id, title, content, finalTags);
-        } else {
-            await aiApi.createNote(title, content, finalTags);
-        }
+        await (aiApi as any).updateNote(initialData._id, title, content, finalTags);
       } else {
         await aiApi.createNote(title, content, finalTags);
       }
@@ -292,23 +301,23 @@ function NoteEditor({ onSave, initialData }: { onSave: () => void, initialData?:
   return (
     <div className="flex flex-col gap-8 w-full max-w-2xl mx-auto p-4 md:p-12">
       <div className="flex flex-col gap-2">
-        <label className="text-xs text-[#555] font-sans tracking-widest uppercase">Title</label>
+        <label className="text-xs text-[#888] font-bold  tracking-widest uppercase">Title</label>
         <input
           autoFocus
           style={inputStyle}
-          className="block w-full bg-transparent text-3xl md:text-4xl font-bold font-serif text-[#fff] outline-none placeholder-[#333] pb-2 border-b border-[#333] focus:border-[#888] transition-colors"
-          placeholder="Enter title..."
+          className="block w-full bg-[#111] p-3 rounded-sm text-2xl md:text-3xl font-bold  text-white outline-none placeholder-[#666] border-b-2 border-[#444] focus:border-[#fff] focus:bg-[#161616] transition-all"
+          placeholder="제목을 입력하세요..."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
       </div>
 
       <div className="flex flex-col gap-2 flex-1">
-        <label className="text-xs text-[#555] font-sans tracking-widest uppercase">Content</label>
+        <label className="text-xs text-[#888] font-bold  tracking-widest uppercase">Content</label>
         <textarea
           style={inputStyle}
-          className="block w-full min-h-[60vh] bg-transparent text-lg text-[#ddd] outline-none resize-none placeholder-[#333] leading-loose font-serif border-none p-0"
-          placeholder="Write your note here..."
+          className="block w-full min-h-[60vh] bg-[#111] p-4 rounded-sm text-lg text-[#eee] outline-none resize-none placeholder-[#666] leading-loose  border border-[#333] focus:border-[#666] focus:bg-[#161616] transition-all"
+          placeholder="내용을 자유롭게 작성하세요..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
@@ -316,11 +325,11 @@ function NoteEditor({ onSave, initialData }: { onSave: () => void, initialData?:
 
       <div className="flex items-end justify-between pt-6 border-t border-[#333]">
         <div className="flex flex-col gap-2 w-full max-w-[300px]">
-          <label className="text-xs text-[#555] font-sans tracking-widest uppercase">Tags (Optional)</label>
+          <label className="text-xs text-[#888] font-bold  tracking-widest uppercase">Tags (Optional)</label>
           <input
             style={inputStyle}
-            className="bg-transparent text-xs text-[#888] outline-none placeholder-[#333] w-full font-sans border-b border-[#333] pb-1 focus:border-[#666] transition-colors"
-            placeholder="e.g. idea diary project"
+            className="bg-[#111] px-3 py-2 rounded-sm text-sm text-white outline-none placeholder-[#666] w-full  border-b border-[#444] focus:border-[#fff] transition-all"
+            placeholder="예: idea diary project"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
           />
@@ -328,9 +337,9 @@ function NoteEditor({ onSave, initialData }: { onSave: () => void, initialData?:
         <button
           onClick={handleSave}
           style={btnStyle}
-          className="bg-[#eee] text-black px-8 py-2 text-xs font-bold uppercase tracking-widest hover:bg-white transition-all shadow-md ml-4"
+          className="bg-[#eee] text-black px-8 py-3 text-xs font-bold uppercase tracking-widest hover:bg-white transition-all shadow-md ml-4 rounded-sm"
         >
-          Save
+          Save Note
         </button>
       </div>
     </div>
