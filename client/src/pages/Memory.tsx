@@ -89,17 +89,17 @@ export default function Memory() {
   const noDrag = { WebkitAppRegion: 'no-drag' } as any;
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#0a0a0a] text-gray-100  overflow-hidden relative selection:bg-[#fff] selection:text-black">
+    <div className="flex-1 flex flex-col h-full text-[var(--text-main)] overflow-hidden relative selection:bg-[var(--text-main)] selection:text-[var(--bg-main)] transition-colors duration-300 font-sans">
       
       {viewMode === 'list' && (
         <>
-          <div className="flex flex-col gap-6 pt-10 pb-6 px-8 md:px-12 shrink-0 bg-[#0a0a0a] z-10 border-b border-[#333]">
+          <div className="flex flex-col gap-6 pt-8 pb-6 px-8 md:px-12 shrink-0 z-10 border-b border-[var(--border-main)] bg-[var(--bg-main)]">
             <div className="flex justify-between items-end">
               <div>
-                <h1 className="text-xl md:text-2xl font-bold tracking-[0.2em] text-white uppercase">
+                <h1 className="text-xl md:text-2xl font-black tracking-[0.2em] text-[var(--text-main)] uppercase">
                   MEMORY
                 </h1>
-                <p className="text-[#888] text-xs mt-2  tracking-wide">
+                <p className="text-[var(--text-muted)] text-xs mt-2 tracking-wide font-bold opacity-60">
                   {notes.length} RECORDS
                 </p>
               </div>
@@ -107,7 +107,7 @@ export default function Memory() {
               <button
                 onClick={() => setViewMode('write')}
                 style={noDrag}
-                className="bg-white text-black border border-white px-5 py-2 text-[10px] md:text-xs font-bold hover:bg-gray-200 transition-all uppercase tracking-widest cursor-pointer shadow-lg"
+                className="bg-[var(--text-main)] text-[var(--bg-main)] px-5 py-2.5 text-[10px] md:text-xs font-black hover:opacity-80 transition-all uppercase tracking-widest cursor-pointer shadow-sm rounded-sm"
               >
                 + New Note
               </button>
@@ -120,10 +120,10 @@ export default function Memory() {
                     key={tag}
                     onClick={() => setSelectedTag(tag)}
                     style={noDrag}
-                    className={`text-[10px] md:text-xs px-3 py-1 rounded-full border transition-all whitespace-nowrap uppercase tracking-wider cursor-pointer ${
+                    className={`text-[10px] md:text-xs px-3 py-1.5 rounded-full border transition-all whitespace-nowrap uppercase tracking-wider cursor-pointer font-bold ${
                       selectedTag === tag 
-                        ? 'bg-[#333] border-[#888] text-white font-bold' 
-                        : 'border-[#333] text-[#888] hover:border-[#666] hover:text-[#ddd]'
+                        ? 'bg-[var(--text-main)] border-[var(--text-main)] text-[var(--bg-main)]' 
+                        : 'border-[var(--border-main)] text-[var(--text-muted)] hover:border-[var(--text-main)] hover:text-[var(--text-main)]'
                     }`}
                   >
                     {tag === 'ALL' ? 'VIEW ALL' : `#${tag}`}
@@ -133,40 +133,41 @@ export default function Memory() {
 
               <input
                 style={{ ...noDrag, userSelect: 'text' }}
-                className="bg-transparent border-b border-[#444] py-1 text-sm outline-none focus:border-[#fff] transition-colors text-white w-full md:w-48  placeholder-[#666]"
-                placeholder="Search..."
+                className="bg-transparent border-b border-[var(--border-main)] py-1.5 text-sm outline-none focus:border-[var(--text-main)] transition-colors text-[var(--text-main)] w-full md:w-56 placeholder-[var(--text-muted)] font-medium"
+                placeholder="Search memories..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-8 md:px-12 pb-20 scrollbar-thin scrollbar-thumb-[#444] scrollbar-track-transparent">
+          <div className="flex-1 overflow-y-auto px-8 md:px-12 pb-20 scrollbar-thin bg-[var(--bg-main)]">
             {filteredNotes.length === 0 ? (
-               <div className="flex flex-col items-center justify-center h-80 text-[#666]">
-                 <p className="italic  text-lg">No notes found.</p>
+               <div className="flex flex-col items-center justify-center h-80 text-[var(--text-muted)] opacity-50">
+                 <p className="italic text-lg font-serif">No notes found.</p>
                </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-6 gap-y-12 pb-12 mt-10">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-6 gap-y-10 pb-12 mt-10">
                 {filteredNotes.map((note) => (
                   <div 
                     key={note._id} 
                     onClick={() => handleNoteClick(note)}
-                    className="group relative cursor-pointer w-full aspect-[2/3] bg-[#1a1a1a] transition-all duration-300 hover:-translate-y-3 hover:shadow-[0_15px_30px_-5px_rgba(255,255,255,0.1)] border border-[#333] hover:border-[#777] flex flex-col"
+                    className="group relative cursor-pointer w-full aspect-[3/4] bg-[var(--bg-card)] transition-all duration-300 hover:-translate-y-2 hover:shadow-lg border border-[var(--border-main)] hover:border-[var(--text-main)] flex flex-col rounded-sm overflow-hidden"
                   >
-                    <div className="absolute left-0 top-0 bottom-0 w-3 md:w-4 bg-[#252525] border-r border-[#444] z-10 box-border"></div>
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--border-main)] group-hover:bg-[var(--text-main)] transition-colors z-10"></div>
                     
-                    <div className="h-full flex flex-col p-3 pl-6 md:p-4 md:pl-8 overflow-hidden">
-                      <h3 className="text-xs md:text-sm font-bold text-gray-200 leading-snug line-clamp-4  group-hover:text-white break-words">
+                    <div className="h-full flex flex-col p-4 pl-6 overflow-hidden">
+                      <h3 className="text-xs md:text-sm font-bold text-[var(--text-main)] leading-snug line-clamp-4 break-words mb-auto">
                         {note.title || 'Untitled'}
                       </h3>
-                      <div className="mt-auto border-t border-[#333] pt-2">
+                      
+                      <div className="mt-4 pt-3 border-t border-[var(--border-main)]">
                         {note.tags && note.tags.length > 0 && (
-                           <span className="block text-[9px] md:text-[10px] text-[#888] truncate  uppercase tracking-wider group-hover:text-[#bbb]">
+                           <span className="block text-[9px] text-[var(--text-muted)] truncate uppercase tracking-wider font-bold group-hover:text-[var(--text-main)] mb-1">
                              {note.tags[0]}
                            </span>
                         )}
-                        <span className="block text-[8px] text-[#666] mt-1  group-hover:text-[#888]">
+                        <span className="block text-[8px] text-[var(--text-muted)] font-mono opacity-60">
                           {new Date(note.createdAt).toLocaleDateString()}
                         </span>
                       </div>
@@ -180,9 +181,9 @@ export default function Memory() {
       )}
 
       {(viewMode === 'write' || viewMode === 'edit') && (
-        <div className="absolute inset-0 z-[100] bg-[#0a0a0a] flex flex-col animate-fadeIn">
+        <div className="absolute inset-0 z-[100] bg-[var(--bg-main)] flex flex-col animate-fadeIn">
           <TopBar onBack={handleBack} />
-          <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 scrollbar-thin scrollbar-thumb-[#444]">
+          <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 scrollbar-thin">
             <NoteEditor 
               onSave={handleBack} 
               initialData={viewMode === 'edit' ? selectedNote : null}
@@ -193,46 +194,48 @@ export default function Memory() {
       )}
 
       {viewMode === 'detail' && selectedNote && (
-        <div className="absolute inset-0 z-[100] bg-[#0a0a0a] flex flex-col animate-fadeIn">
+        <div className="absolute inset-0 z-[100] bg-[var(--bg-main)] flex flex-col animate-fadeIn">
           <TopBar onBack={handleBack} />
           
-          <div className="flex-1 overflow-y-auto px-6 md:px-20 py-12 scrollbar-thin scrollbar-thumb-[#444]">
-            <div className="max-w-2xl mx-auto flex flex-col gap-10 min-h-[80vh]">
+          <div className="flex-1 overflow-y-auto px-6 md:px-20 py-12 scrollbar-thin">
+            <div className="max-w-3xl mx-auto flex flex-col gap-10 min-h-[80vh]">
               
-              <div className="flex flex-col gap-4 text-center pb-8 border-b border-[#333]">
-                 <h1 className="text-3xl md:text-5xl font-bold text-white  leading-tight break-keep">
+              <div className="flex flex-col gap-4 text-center pb-8 border-b border-[var(--border-main)]">
+                 <h1 className="text-3xl md:text-5xl font-black text-[var(--text-main)] leading-tight break-keep tracking-tight">
                    {selectedNote.title || 'Untitled'}
                  </h1>
-                 <div className="flex flex-col gap-1 items-center">
-                   <span className="text-xs text-[#888]  tracking-widest uppercase">
-                     TOTAL {new Date(selectedNote.createdAt).toLocaleDateString()}
+                 <div className="flex flex-col gap-2 items-center">
+                   <span className="text-xs text-[var(--text-muted)] tracking-widest uppercase font-bold opacity-60">
+                     RECORDED ON {new Date(selectedNote.createdAt).toLocaleDateString()}
                    </span>
                    {selectedNote.tags && selectedNote.tags.length > 0 && (
                       <div className="flex gap-2 mt-2">
                         {selectedNote.tags.map(t => (
-                           <span key={t} className="text-[10px] text-[#888] border border-[#444] px-2 py-0.5 uppercase tracking-wider">#{t}</span>
+                           <span key={t} className="text-[10px] text-[var(--text-main)] border border-[var(--border-main)] px-2 py-0.5 uppercase tracking-wider font-bold rounded-sm">
+                             #{t}
+                           </span>
                         ))}
                       </div>
                    )}
                  </div>
               </div>
 
-              <div className="text-lg text-[#eee] leading-loose whitespace-pre-wrap  text-justify">
+              <div className="text-lg text-[var(--text-main)] leading-loose whitespace-pre-wrap text-justify font-serif">
                 {selectedNote.content}
               </div>
 
-              <div className="mt-auto pt-12 flex justify-end gap-6 border-t border-[#333]">
+              <div className="mt-auto pt-12 flex justify-end gap-6 border-t border-[var(--border-main)]">
                   <button
                     onClick={handleEdit}
                     style={noDrag}
-                    className="text-xs font-bold text-[#888] hover:text-white uppercase tracking-widest transition-colors cursor-pointer border border-transparent hover:border-[#666] px-3 py-1"
+                    className="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] uppercase tracking-widest transition-colors cursor-pointer border border-transparent hover:border-[var(--border-main)] px-4 py-2"
                   >
-                    EDIT
+                    EDIT NOTE
                   </button>
                   <button
                     onClick={() => handleDelete(selectedNote._id)}
                     style={noDrag}
-                    className="text-xs font-bold text-[#b55] hover:text-[#f66] uppercase tracking-widest transition-colors cursor-pointer border border-transparent hover:border-[#833] px-3 py-1"
+                    className="text-xs font-bold text-red-500 hover:text-red-600 uppercase tracking-widest transition-colors cursor-pointer border border-transparent hover:border-red-200 px-4 py-2"
                   >
                     DELETE
                   </button>
@@ -247,13 +250,14 @@ export default function Memory() {
 
 function TopBar({ onBack }: { onBack: () => void }) {
   return (
-    <div className="h-14 md:h-16 flex items-center justify-between px-6 md:px-8 shrink-0 bg-[#0a0a0a] border-b border-[#333] sticky top-0 z-50">
+    <div className="h-16 flex items-center justify-between px-6 md:px-8 shrink-0 bg-[var(--bg-main)] border-b border-[var(--border-main)] sticky top-0 z-50">
       <button
         onClick={onBack}
         style={{ WebkitAppRegion: 'no-drag' } as any}
-        className="flex items-center gap-3 text-[#888] hover:text-white transition-colors group cursor-pointer"
+        className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors group cursor-pointer"
       >
-        <span className="text-sm  italic">← Back</span>
+        <span className="text-lg">←</span>
+        <span className="text-xs font-bold uppercase tracking-widest">Back to Memory</span>
       </button>
     </div>
   );
@@ -277,7 +281,6 @@ function NoteEditor({ onSave, initialData }: { onSave: () => void, initialData?:
   }, [initialData]);
 
   const inputStyle = { WebkitAppRegion: 'no-drag', userSelect: 'text', cursor: 'text' } as any;
-  const btnStyle = { WebkitAppRegion: 'no-drag', cursor: 'pointer' } as any;
 
   const handleSave = async () => {
     if (!content.trim()) return;
@@ -299,45 +302,45 @@ function NoteEditor({ onSave, initialData }: { onSave: () => void, initialData?:
   };
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-2xl mx-auto p-4 md:p-12">
-      <div className="flex flex-col gap-2">
-        <label className="text-xs text-[#888] font-bold  tracking-widest uppercase">Title</label>
+    <div className="flex flex-col gap-8 w-full max-w-3xl mx-auto p-4 md:p-12">
+      <div className="flex flex-col gap-3">
+        <label className="text-xs text-[var(--text-muted)] font-black tracking-widest uppercase opacity-70">Title</label>
         <input
           autoFocus
           style={inputStyle}
-          className="block w-full bg-[#111] p-3 rounded-sm text-2xl md:text-3xl font-bold  text-white outline-none placeholder-[#666] border-b-2 border-[#444] focus:border-[#fff] focus:bg-[#161616] transition-all"
-          placeholder="제목을 입력하세요..."
+          className="block w-full bg-transparent p-4 rounded-sm text-2xl md:text-3xl font-bold text-[var(--text-main)] outline-none placeholder-[var(--text-muted)] border-b-2 border-[var(--border-main)] focus:border-[var(--text-main)] focus:bg-[var(--bg-card)] transition-all"
+          placeholder="Enter title..."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
       </div>
 
-      <div className="flex flex-col gap-2 flex-1">
-        <label className="text-xs text-[#888] font-bold  tracking-widest uppercase">Content</label>
+      <div className="flex flex-col gap-3 flex-1">
+        <label className="text-xs text-[var(--text-muted)] font-black tracking-widest uppercase opacity-70">Content</label>
         <textarea
           style={inputStyle}
-          className="block w-full min-h-[60vh] bg-[#111] p-4 rounded-sm text-lg text-[#eee] outline-none resize-none placeholder-[#666] leading-loose  border border-[#333] focus:border-[#666] focus:bg-[#161616] transition-all"
-          placeholder="내용을 자유롭게 작성하세요..."
+          className="block w-full min-h-[50vh] bg-[var(--bg-card)] p-6 rounded-sm text-lg text-[var(--text-main)] outline-none resize-none placeholder-[var(--text-muted)] leading-loose border border-[var(--border-main)] focus:border-[var(--text-main)] transition-all font-serif"
+          placeholder="Write your thoughts..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
       </div>
 
-      <div className="flex items-end justify-between pt-6 border-t border-[#333]">
-        <div className="flex flex-col gap-2 w-full max-w-[300px]">
-          <label className="text-xs text-[#888] font-bold  tracking-widest uppercase">Tags (Optional)</label>
+      <div className="flex items-end justify-between pt-8 border-t border-[var(--border-main)]">
+        <div className="flex flex-col gap-3 w-full max-w-[350px]">
+          <label className="text-xs text-[var(--text-muted)] font-black tracking-widest uppercase opacity-70">Tags (Space separated)</label>
           <input
             style={inputStyle}
-            className="bg-[#111] px-3 py-2 rounded-sm text-sm text-white outline-none placeholder-[#666] w-full  border-b border-[#444] focus:border-[#fff] transition-all"
-            placeholder="예: idea diary project"
+            className="bg-[var(--bg-card)] px-4 py-3 rounded-sm text-sm text-[var(--text-main)] outline-none placeholder-[var(--text-muted)] w-full border border-[var(--border-main)] focus:border-[var(--text-main)] transition-all"
+            placeholder="e.g. idea diary project"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
           />
         </div>
         <button
           onClick={handleSave}
-          style={btnStyle}
-          className="bg-[#eee] text-black px-8 py-3 text-xs font-bold uppercase tracking-widest hover:bg-white transition-all shadow-md ml-4 rounded-sm"
+          style={{ WebkitAppRegion: 'no-drag', cursor: 'pointer' } as any}
+          className="bg-[var(--text-main)] text-[var(--bg-main)] px-8 py-3 text-xs font-black uppercase tracking-widest hover:opacity-80 transition-all shadow-md ml-6 rounded-sm"
         >
           Save Note
         </button>

@@ -86,5 +86,15 @@ export const aiApi = {
   deleteNote: async (id: string) => {
     const response = await axios.delete(`${BASE_URL}/ai/notes/${id}`);
     return response.data;
+  },
+
+  getSettings: async () => {
+    const response = await axios.get(`${BASE_URL}/ai/settings`);
+    return response.data;
+  },
+
+  updateSettings: async (settings: any) => {
+    const response = await axios.post(`${BASE_URL}/ai/settings`, settings);
+    return response.data;
   }
 };

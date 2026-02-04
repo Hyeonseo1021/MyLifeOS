@@ -37,24 +37,34 @@ export default function InteractiveCalendar({ selectedDate, onSelectDate, todos 
         <div className={`
           w-full h-full flex flex-col items-center justify-center rounded-md cursor-pointer transition-all duration-200 border relative overflow-hidden
           ${isSelected 
-            ? 'bg-neutral-200 border-white text-black shadow-[0_0_15px_rgba(255,255,255,0.4)] z-10 scale-105' 
-            : 'bg-neutral-900 border-neutral-800/50 text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200 hover:border-neutral-600 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]'
+            ? 'bg-[var(--text-main)] text-[var(--bg-main)] border-transparent shadow-lg scale-105 z-10' 
+            : 'bg-[var(--bg-main)] border-[var(--border-main)] text-[var(--text-muted)] hover:bg-[var(--bg-card)] hover:text-[var(--text-main)] hover:border-[var(--text-main)] shadow-sm'
           }
-          ${isToday && !isSelected ? 'border-neutral-500 text-neutral-300 shadow-[inset_0_0_0_1px_rgba(115,115,115,0.5)]' : ''}
+          ${isToday && !isSelected 
+            ? 'border-[var(--text-muted)] text-[var(--text-main)]' 
+            : ''}
         `}>
           
-          <span className={`font-mono text-lg font-bold z-10 ${isSunday && !isSelected ? 'text-red-900 group-hover:text-red-500' : ''}`}>
+          <span className={`font-mono text-lg font-bold z-10 
+            ${isSunday && !isSelected 
+              ? 'text-red-500' 
+              : ''}
+          `}>
             {i}
           </span>
 
           {hasTodo && (
-            <div className={`absolute top-2 right-2 w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-black' : 'bg-blue-500 shadow-[0_0_5px_#3b82f6]'}`}></div>
+            <div className={`absolute top-2 right-2 w-1.5 h-1.5 rounded-full 
+              ${isSelected 
+                ? 'bg-[var(--bg-main)]' 
+                : 'bg-blue-500 shadow-[0_0_3px_#3b82f6]'}
+            `}></div>
           )}
           
           {!isSelected && (
              <>
-               <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-neutral-700/30 rounded-bl-sm"></div>
-               <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-neutral-700/30 rounded-tr-sm"></div>
+               <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[var(--border-main)] rounded-bl-sm opacity-50"></div>
+               <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[var(--border-main)] rounded-tr-sm opacity-50"></div>
              </>
           )}
         </div>
@@ -65,28 +75,35 @@ export default function InteractiveCalendar({ selectedDate, onSelectDate, todos 
   return (
     <div className="flex flex-col w-full h-full justify-between">
       
-      <div className="flex justify-between items-end mb-3 px-1 border-b border-neutral-800 pb-2">
+      {/* Header Area */}
+      <div className="flex justify-between items-end mb-3 px-1 border-b pb-2 border-[var(--border-main)]">
         <div className="flex flex-col">
-            <span className="text-3xl font-black text-white uppercase tracking-tighter font-mono flex items-baseline gap-2 drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">
+            <span className="text-3xl font-black uppercase tracking-tighter font-mono flex items-baseline gap-2 
+              text-[var(--text-main)] drop-shadow-sm">
                 {selectedDate.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()}
             </span>
         </div>
-        <span className="text-2xl font-bold font-mono text-neutral-500 tracking-widest opacity-80">
+        <span className="text-2xl font-bold font-mono tracking-widest opacity-60 text-[var(--text-muted)]">
             {year}
         </span>
       </div>
       
+      {/* Weekdays Header */}
       <div className="grid grid-cols-7 gap-2 mb-2">
         {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((d, i) => (
             <div key={i} className={`
-                text-[16px] py-1 text-center font-bold font-mono rounded bg-neutral-900/50 border border-neutral-800/50
-                ${i === 0 ? 'text-red-800 border-red-900/20' : 'text-neutral-500'}
+                text-[16px] py-1 text-center font-bold font-mono rounded border
+                bg-[var(--bg-main)] border-[var(--border-main)]
+                ${i === 0 
+                  ? 'text-red-500 border-red-500/20' 
+                  : 'text-[var(--text-muted)]'}
             `}>
                 {d}
             </div>
         ))}
       </div>
 
+      {/* Calendar Grid */}
       <div className="flex-1 grid grid-cols-7 gap-2 items-stretch content-stretch">
         {days}
       </div>
