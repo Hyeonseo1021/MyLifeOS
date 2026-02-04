@@ -1,20 +1,51 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Noto+Serif+KR:wght@300;400;600;700&display=swap');
 @import "tailwindcss";
 
+:root {
+  --bg-main: #fcfcfc;
+  --bg-card: #ffffff;
+  --text-main: #1a1a1a;
+  --text-muted: #666666;
+  --border-main: #e5e5e5;
+  --accent: #000000;
+  
+  --scrollbar-track: #f1f1f1;
+  --scrollbar-thumb: #cccccc;
+}
+
+.dark {
+  --bg-main: #0a0a0a;
+  --bg-card: #111111;
+  --text-main: #e0e0e0;
+  --text-muted: #888888;
+  --border-main: #333333;
+  --accent: #ffffff;
+
+  --scrollbar-track: #0a0a0a;
+  --scrollbar-thumb: #333333;
+}
+
 @theme {
   --font-sans: "IBM Plex Sans KR", sans-serif;
   --font-serif: "Noto Serif KR", serif;
   --font-mono: "JetBrains Mono", monospace;
+  
+  --color-app-bg: var(--bg-main);
+  --color-app-card: var(--bg-card);
+  --color-app-text: var(--text-main);
+  --color-app-muted: var(--text-muted);
+  --color-app-border: var(--border-main);
 }
 
 @layer base {
   body {
     margin: 0;
     font-family: var(--font-sans);
-    background-color: #0a0a0a;
-    color: #e0e0e0;
+    background-color: var(--bg-main);
+    color: var(--text-main);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
 
@@ -29,14 +60,14 @@
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0a0a0a; 
+  background: var(--scrollbar-track); 
 }
 ::-webkit-scrollbar-thumb {
-  background: #333; 
+  background: var(--scrollbar-thumb); 
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {

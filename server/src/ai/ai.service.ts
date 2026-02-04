@@ -16,6 +16,7 @@ import { ChatLog } from './chatLog.schema';
 import { VectorDoc } from './vectorDoc.schema';
 import { ChatSession } from './chatSession.schema';
 import { Note } from './note.schema';
+import { Settings } from 'src/setting/setting.schema';
 
 @Injectable()
 export class AiService {
@@ -30,6 +31,7 @@ export class AiService {
     @InjectModel(ChatSession.name) private chatSessionModel: Model<ChatSession>,
     @InjectModel(VectorDoc.name) private vectorDocModel: Model<VectorDoc>,
     @InjectModel(Note.name) private noteModel: Model<Note>,
+    @InjectModel(Settings.name) private settingsModel: Model<Settings>,
   ) {
     this.model = new ChatOpenAI({
       modelName: 'gpt-3.5-turbo',
@@ -146,6 +148,20 @@ export class AiService {
         ...chatResult,
         logs: [...fileLogs, ...chatResult.logs]
     };
+  }
+
+  async getSettings() {
+    let settings = await this.settingsModel.findOne();
+    if (!settings) {
+      settings = await this.settingsModel.create({});
+    }
+    return settings;
+  }
+
+  async updateSettings(data: Partial<Settings>) {
+    const settings = await this.getSettings();
+    Object.assign(settings, data);
+    return settings.save();
   }
 
   async chat(message: string, sessionId: string, directContext?: string) {
@@ -276,11 +292,16 @@ export class AiService {
       },
     ];
 
+    const settings = await this.getSettings();
+    const userName = settings.username || 'User';
+
     try {
       const modelWithTools = this.model.bindTools(tools);
 
       const systemPrompt = `
         당신은 유능하고 전문적인 AI 비서 'Jarvis'입니다.
+        현재 당신이 모시는 사용자의 이름(호칭)은 '${userName}'입니다.
+        대화할 때 상황에 맞게 적절히 이름을 불러 친근감을 표현하세요.
         
         [상황 정보]
         - 날짜: ${this.getTodayStr()}
