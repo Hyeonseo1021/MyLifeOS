@@ -11,7 +11,7 @@ interface GeneralSettings {
 export default function Settings() {
   const { theme, setTheme } = useTheme();
   const [settings, setSettings] = useState<GeneralSettings>({
-    username: 'Master',
+    username: '',
     theme: theme,
     language: 'ko',
   });
@@ -35,12 +35,11 @@ export default function Settings() {
   return (
     <div className="flex-1 flex flex-col h-full bg-transparent text-[var(--text-main)] overflow-hidden relative font-sans selection:bg-[var(--text-main)] selection:text-[var(--bg-main)] transition-colors duration-300">
       
-      {/* Background Pattern (Optional: Subtle Grid) */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.02]" 
-           style={{ 
-             backgroundImage: 'linear-gradient(var(--text-main) 1px, transparent 1px), linear-gradient(90deg, var(--text-main) 1px, transparent 1px)', 
-             backgroundSize: '40px 40px' 
-           }}>
+      <div className="absolute inset-0 pointer-events-none opacity-[0.02] hidden dark:block" 
+        style={{ 
+          backgroundImage: 'linear-gradient(var(--text-main) 1px, transparent 1px), linear-gradient(90deg, var(--text-main) 1px, transparent 1px)', 
+          backgroundSize: '40px 40px' 
+        }}>
       </div>
 
       <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto scrollbar-thin">
