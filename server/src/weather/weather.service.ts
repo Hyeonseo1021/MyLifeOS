@@ -12,7 +12,7 @@ export class WeatherService {
       
       return {
         temp: Math.round(data.main.temp),
-        condition: data.weather[0].main, 
+        condition: data.weather[0].description, 
         location: data.name,
         humidity: data.main.humidity,
         min: Math.round(data.main.temp_min),

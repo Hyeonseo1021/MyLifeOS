@@ -24,7 +24,7 @@ export default function Sidebar({ activeTab, onTabChange, aiState }: SidebarProp
             key={tab} 
             onClick={() => onTabChange(tab)}
             className={`
-              w-full py-2 text-[10px] font-black transition-all relative group flex flex-col justify-center items-center gap-1 non-draggable tracking-[0.2em]
+              w-full py-2 text-[12px] font-black transition-all relative group flex flex-col justify-center items-center gap-1 non-draggable tracking-[0.2em]
               ${activeTab === tab 
                 ? 'text-[var(--text-main)] opacity-100' 
                 : 'text-[var(--text-muted)] opacity-40 hover:opacity-100 hover:text-[var(--text-main)]'}

@@ -104,25 +104,25 @@ export default function Home({ setAiState }: HomeProps) {
         {/* Header: Minimalist Typo */}
         <div className="flex justify-between items-end">
             <div className="group cursor-default">
-                <div className="text-6xl font-bold tracking-tighter text-[var(--text-main)] tabular-nums leading-none">
+                <div className="text-5xl font-bold tracking-tighter text-[var(--text-main)] tabular-nums leading-none">
                     {formatTime(currentTime).split(' ')[0]}
                     <span className="text-3xl opacity-20 ml-1">:{currentTime.getSeconds().toString().padStart(2, '0')}</span>
                 </div>
-                <div className="text-[11px] font-black uppercase tracking-[0.4em] text-[var(--text-muted)] mt-3 opacity-60 group-hover:opacity-100 transition-opacity">
-                    {formatDate(currentTime)} — {currentTime.toLocaleDateString('en-US', { weekday: 'long' })}
+                <div className="text-[16px] font-black uppercase tracking-[0.1em] text-[var(--text-muted)] mt-3 opacity-60 group-hover:opacity-100 transition-opacity">
+                    {formatDate(currentTime)}
                 </div>
             </div>
 
             {weather && (
                 <div className="text-right space-y-1">
                     <div className="flex items-center gap-4 justify-end">
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full border border-[var(--border-main)] text-[var(--text-muted)] uppercase tracking-widest">
+                        <span className="text-[16px] font-black px-2 py-0.5 rounded-full border border-[var(--border-main)] text-[var(--text-muted)] uppercase tracking-widest">
                             {weather.location}
                         </span>
                         <span className="text-4xl font-light text-[var(--text-main)] tracking-tight">{weather.temp}°C</span>
                     </div>
-                    <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] opacity-50">
-                        {weather.condition} / Humidity {weather.humidity}%
+                    <div className="text-[16px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] opacity-50">
+                        {weather.condition} / 습도 {weather.humidity}%
                     </div>
                 </div>
             )}
@@ -130,13 +130,13 @@ export default function Home({ setAiState }: HomeProps) {
 
         {/* Middle: AI Briefing Card (Elevated) */}
         <div className="grid grid-cols-12 gap-8 h-[400px]">
-            <div className="col-span-7 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-2xl p-8 relative flex flex-col shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)] group">
+            <div className="col-span-7 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-2xl p-8 relative flex flex-col shadow-[0_4px_16px_-5px_rgba(0,0,0,0.05)] group">
                 <div className="flex justify-between items-start mb-8">
                     <div className="flex items-center gap-3">
                         <div className={`w-2 h-2 rounded-full ${aiStatus === 'COMPLETED' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)]">Intelligence Brief</span>
+                        <span className="text-[16px] font-black uppercase tracking-[0.1em] text-[var(--text-muted)]">Brief</span>
                     </div>
-                    <span className={`text-[9px] font-bold px-2 py-1 rounded border border-[var(--border-main)] ${statusInfo(aiStatus).color}`}>
+                    <span className={`text-[16px] font-bold px-2 py-1 rounded border border-[var(--border-main)] ${statusInfo(aiStatus).color}`}>
                         {statusInfo(aiStatus).text}
                     </span>
                 </div>
@@ -154,30 +154,25 @@ export default function Home({ setAiState }: HomeProps) {
                         </div>
                     )}
                 </div>
-
-                <div className="mt-8 pt-6 border-t border-[var(--border-main)] flex items-center justify-between opacity-40">
-                    <span className="text-[9px] font-bold tracking-widest uppercase">System Protocol 1.0.4</span>
-                    <span className="text-[9px] font-mono tracking-tighter">LATENCY: 24ms</span>
-                </div>
             </div>
 
-            <div className="col-span-5 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-2xl p-6 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)]">
+            <div className="col-span-5 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-2xl p-6 shadow-[0_4px_16px_-5px_rgba(0,0,0,0.05)]">
                  <InteractiveCalendar selectedDate={selectedDate} onSelectDate={setSelectedDate} todos={todos} />
             </div>
         </div>
 
         {/* Bottom: Dynamic Lists */}
         <div className="grid grid-cols-12 gap-8 min-h-0">
-            <div className="col-span-4 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-2xl p-6 flex flex-col min-h-0 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.05)]">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] mb-6">Market & Tech</h3>
+            <div className="col-span-4 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-2xl p-6 flex flex-col min-h-0 shadow-[0_4px_16px_-5px_rgba(0,0,0,0.05)]">
+                <h3 className="text-[16px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] mb-6">Issue</h3>
                 <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
                     {issues.map((item, idx) => (
                         <div key={idx} onClick={() => window.open(item.url, '_blank')}
                             className="group cursor-pointer flex flex-col gap-1 transition-transform active:scale-[0.98]">
-                            <div className="text-[11px] font-bold text-[var(--text-main)] leading-snug group-hover:text-blue-500 transition-colors line-clamp-2">
+                            <div className="text-[14px] font-bold text-[var(--text-main)] leading-snug group-hover:text-blue-500 transition-colors line-clamp-2">
                                 {item.title}
                             </div>
-                            <div className="text-[8px] font-black text-[var(--text-muted)] opacity-40 uppercase tracking-widest">
+                            <div className="text-[12px] font-black text-[var(--text-muted)] opacity-40 uppercase tracking-widest">
                                 {item.category} / 0{idx + 1}
                             </div>
                         </div>
@@ -188,15 +183,15 @@ export default function Home({ setAiState }: HomeProps) {
             <div className="col-span-8 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-2xl p-6 flex flex-col min-h-0 shadow-[0_2px_15px_-5px_rgba(0,0,0,0.05)]">
                 <div className="flex justify-between items-center mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="px-2 py-1 bg-[var(--text-main)] text-[var(--bg-main)] text-[9px] font-black uppercase tracking-widest rounded">Tasking</div>
-                        <span className="text-[10px] font-bold text-[var(--text-muted)] opacity-50 uppercase tracking-tighter">{getYMD(selectedDate)}</span>
+                        <div className="px-2 py-1 bg-[var(--text-main)] text-[var(--bg-main)] text-[16px] font-black uppercase tracking-widest rounded">Tasking</div>
+                        <span className="text-[16px] font-bold text-[var(--text-muted)] opacity-50 uppercase tracking-tighter">{getYMD(selectedDate)}</span>
                     </div>
-                    <span className="text-[10px] font-black text-[var(--text-main)] tabular-nums">{filteredTodos.filter(t => t.done).length}/{filteredTodos.length}</span>
+                    <span className="text-[16px] font-black text-[var(--text-main)] tabular-nums">{filteredTodos.filter(t => t.done).length}/{filteredTodos.length}</span>
                 </div>
                 
                 <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
                      {filteredTodos.length === 0 ? (
-                        <div className="h-full flex items-center justify-center text-[9px] font-black text-[var(--text-muted)] uppercase tracking-[0.4em] opacity-20">Standby</div>
+                        <div className="h-full flex items-center justify-center text-[16px] font-black text-[var(--text-muted)] uppercase tracking-[0.4em] opacity-20">Standby</div>
                      ) : (
                          filteredTodos.map(todo => (
                             <div key={todo._id} onClick={() => toggleTodo(todo._id, todo.done)}
@@ -205,7 +200,7 @@ export default function Home({ setAiState }: HomeProps) {
                                     todo.done ? 'bg-emerald-500 border-emerald-500' : 'border-[var(--border-main)]'}`}>
                                     {todo.done && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7"></path></svg>}
                                 </div>
-                                <span className={`text-sm font-medium flex-1 ${todo.done ? 'line-through opacity-30 text-[var(--text-muted)]' : 'text-[var(--text-main)]'}`}>
+                                <span className={`text-lg font-medium flex-1 ${todo.done ? 'line-through opacity-30 text-[var(--text-muted)]' : 'text-[var(--text-main)]'}`}>
                                     {todo.text}
                                 </span>
                                 <button onClick={(e) => handleDeleteTodo(todo._id, e)} className="text-[var(--text-muted)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
@@ -215,9 +210,9 @@ export default function Home({ setAiState }: HomeProps) {
                 </div>
                 
                 <div className="mt-6 flex gap-3 items-center bg-[var(--bg-main)] p-1 rounded-full border border-[var(--border-main)] focus-within:border-[var(--text-main)] transition-all">
-                    <input className="flex-1 bg-transparent px-4 py-2 text-xs text-[var(--text-main)] outline-none placeholder-[var(--text-muted)] opacity-70"
-                           placeholder="Enter protocol..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} />
-                    <button onClick={addTodo} className="bg-[var(--text-main)] text-[var(--bg-main)] text-[9px] font-black px-5 py-2.5 rounded-full uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all">Push</button>
+                    <input className="flex-1 bg-transparent px-4 py-2 text-lg text-[var(--text-main)] outline-none placeholder-[var(--text-muted)] opacity-70"
+                           placeholder="할 일을 입력하세요..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} />
+                    <button onClick={addTodo} className="bg-[var(--text-main)] text-[var(--bg-main)] text-[12px] font-black px-5 py-2.5 rounded-full uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all">Push</button>
                 </div>
             </div>
         </div>

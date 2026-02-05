@@ -120,13 +120,6 @@ export default function Mlo() {
         <h1 className="text-xl font-light tracking-[0.2em] text-[var(--text-main)]">
           MY LIFE OS
         </h1>
-        <div className="text-[10px] font-bold text-emerald-500 border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 rounded-full flex items-center gap-2 shadow-sm">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            SYSTEM ONLINE
-        </div>
       </div>
 
       <div className="flex-1 min-h-0 grid grid-cols-12 gap-6">

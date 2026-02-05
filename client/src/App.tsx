@@ -20,6 +20,7 @@ function AppContent() {
   const [aiState, setAiState] = useState<AiState>('idle');
 
   return (
+    
     <div className="flex h-screen bg-[var(--bg-main)] text-[var(--text-main)] font-sans rounded-4xl tracking-tight border border-[var(--border-main)] selection:bg-[var(--text-main)] selection:text-[var(--bg-main)] draggable-area transition-colors duration-300 overflow-hidden shadow-2xl">
       
       <Sidebar 
