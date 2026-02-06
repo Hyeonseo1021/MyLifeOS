@@ -11,7 +11,7 @@ export default function Sidebar({ activeTab, onTabChange, aiState }: SidebarProp
   const tabs: TabType[] = ['HOME', 'MLO', 'MEMORY', 'SETTINGS'];
 
   return (
-    <div className="w-24 flex flex-col border-r border-[var(--border-main)] bg-[var(--bg-card)] transition-colors duration-300 z-50">
+    <div className="w-40 flex flex-col border-r border-[var(--border-main)] bg-[var(--bg-card)] transition-colors duration-300 z-50">
       <div className="h-32 flex flex-col items-center justify-center border-b border-[var(--border-main)] py-4 shrink-0">
         <div className="scale-75 cursor-pointer non-draggable hover:scale-90 transition-transform duration-300">
           <AICore state={aiState} />
@@ -24,7 +24,7 @@ export default function Sidebar({ activeTab, onTabChange, aiState }: SidebarProp
             key={tab} 
             onClick={() => onTabChange(tab)}
             className={`
-              w-full py-2 text-[12px] font-black transition-all relative group flex flex-col justify-center items-center gap-1 non-draggable tracking-[0.2em]
+              w-full py-2 text-[16px] font-black transition-all relative group flex flex-col justify-center items-center gap-1 non-draggable tracking-[0.2em]
               ${activeTab === tab 
                 ? 'text-[var(--text-main)] opacity-100' 
                 : 'text-[var(--text-muted)] opacity-40 hover:opacity-100 hover:text-[var(--text-main)]'}

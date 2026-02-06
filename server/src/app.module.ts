@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { TodoModule } from './todo/todo.module';
 import { WeatherModule } from './weather/weather.module';
 import { AiModule } from './ai/ai.module';
+import { NoteModule } from './note/note.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AiModule } from './ai/ai.module';
     TodoModule,
     WeatherModule,
     AiModule,
+    NoteModule
   ],
   controllers: [AppController],
   providers: [AppService],

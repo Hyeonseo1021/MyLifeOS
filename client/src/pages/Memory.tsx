@@ -257,7 +257,7 @@ function TopBar({ onBack }: { onBack: () => void }) {
         className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors group cursor-pointer"
       >
         <span className="text-lg">←</span>
-        <span className="text-xs font-bold uppercase tracking-widest">Back to Memory</span>
+        <span className="text-xs font-bold uppercase tracking-widest">Back</span>
       </button>
     </div>
   );
@@ -342,7 +342,7 @@ function NoteEditor({ onSave, initialData }: { onSave: () => void, initialData?:
           style={{ WebkitAppRegion: 'no-drag', cursor: 'pointer' } as any}
           className="bg-[var(--text-main)] text-[var(--bg-main)] px-8 py-3 text-xs font-black uppercase tracking-widest hover:opacity-80 transition-all shadow-md ml-6 rounded-sm"
         >
-          Save Note
+          Save
         </button>
       </div>
     </div>

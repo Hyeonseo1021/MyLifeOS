@@ -15,7 +15,6 @@ import { TodoDocument } from 'src/todo/todo.schema';
 import { ChatLog } from './chatLog.schema';
 import { VectorDoc } from './vectorDoc.schema';
 import { ChatSession } from './chatSession.schema';
-import { Note } from './note.schema';
 import { Settings } from 'src/setting/setting.schema';
 
 @Injectable()
@@ -30,7 +29,6 @@ export class AiService {
     @InjectModel(ChatLog.name) private chatLogModel: Model<ChatLog>,
     @InjectModel(ChatSession.name) private chatSessionModel: Model<ChatSession>,
     @InjectModel(VectorDoc.name) private vectorDocModel: Model<VectorDoc>,
-    @InjectModel(Note.name) private noteModel: Model<Note>,
     @InjectModel(Settings.name) private settingsModel: Model<Settings>,
   ) {
     this.model = new ChatOpenAI({
@@ -513,36 +511,5 @@ export class AiService {
     } catch (error) {
       return [];
     }
-  }
-  async createNote(title: string, content: string, tags: string[]) {
-    const textToEmbed = `Title: ${title || 'Untitled'}\nContent: ${content}\nTags: ${tags.join(', ')}`;
-    const embedding = await this.embeddings.embedQuery(textToEmbed);
-
-    return this.noteModel.create({
-      title,
-      content,
-      tags,
-      embedding 
-    });
-  }
-
-  async getNotes() {
-    return this.noteModel.find().sort({ createdAt: -1 });
-  }
-
-  async updateNote(id: string, title: string, content: string, tags: string[]) {
-    const textToEmbed = `Title: ${title || 'Untitled'}\nContent: ${content}\nTags: ${tags.join(', ')}`;
-    const embedding = await this.embeddings.embedQuery(textToEmbed);
-
-    return this.noteModel.findByIdAndUpdate(id, {
-      title,
-      content,
-      tags,
-      embedding 
-    }, { new: true });
-  }
-
-  async deleteNote(id: string) {
-    return this.noteModel.findByIdAndDelete(id);
   }
 }
