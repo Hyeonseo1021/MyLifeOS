@@ -1,7 +1,8 @@
-import { useState, useEffect, type KeyboardEvent, type MouseEvent } from 'react';
+import { useState, useEffect, useRef, type KeyboardEvent, type MouseEvent } from 'react';
 import { api } from '../api'; 
 import InteractiveCalendar from '../components/InteractiveCalendar';
 import { useAiSystem } from '../hooks/useAiSystem';
+import { useNotification } from '../hooks/useNotification';
 import { getYMD, formatTime, formatDate } from '../utils/date';
 import type { WeatherData } from '../api/weather';
 import type { TodoItem, AiState, IssueItem } from '../types';
@@ -19,6 +20,47 @@ export default function Home({ setAiState }: HomeProps) {
   const [issues, setIssues] = useState<IssueItem[]>([]);
 
   const { displayedText, aiStatus } = useAiSystem(weather, todos);
+  const { requestPermission, sendNotification } = useNotification();
+  const lastNotifiedHour = useRef<number | null>(null);
+
+  useEffect(() => {
+    requestPermission();
+
+    const syncData = async () => {
+      try {
+        const data = await api.todo.getAll();
+        setTodos(data);
+      } catch(e) {}
+    };
+
+    syncData();
+    const syncTimer = setInterval(syncData, 1000 * 60 * 5);
+
+    return () => clearInterval(syncTimer);
+  }, []);
+
+  useEffect(() => {
+    const checkScheduler = setInterval(() => {
+      const now = new Date();
+      const hour = now.getHours();
+      const minute = now.getMinutes();
+      const pendingCount = todos.filter(t => !t.done).length;
+
+      if (minute === 0 && pendingCount > 0 && lastNotifiedHour.current !== hour) {
+        sendNotification(`[Check-in] 할 일이 ${pendingCount}개 남았습니다!`, {
+          body: "지금 확인하세요!",
+          tag: 'hourly-briefing'
+        });
+
+        setAiState('speaking');
+        setTimeout(() => setAiState('idle'), 4000);
+
+        lastNotifiedHour.current = hour;
+      }
+    }, 1000 * 10);
+
+    return () => clearInterval(checkScheduler);
+  }, [todos, sendNotification, setAiState]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -100,8 +142,6 @@ export default function Home({ setAiState }: HomeProps) {
 
   return (
     <div className="flex-1 p-8 grid grid-rows-[auto_auto_1fr] gap-8 overflow-hidden transition-all duration-500 ease-in-out">
-        
-        {/* Header: Minimalist Typo */}
         <div className="flex justify-between items-end">
             <div className="group cursor-default">
                 <div className="text-5xl font-bold tracking-tighter text-[var(--text-main)] tabular-nums leading-none">
@@ -128,7 +168,6 @@ export default function Home({ setAiState }: HomeProps) {
             )}
         </div>
 
-        {/* Middle: AI Briefing Card (Elevated) */}
         <div className="grid grid-cols-12 gap-8 h-[400px]">
             <div className="col-span-7 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-2xl p-8 relative flex flex-col shadow-[0_4px_16px_-5px_rgba(0,0,0,0.05)] group">
                 <div className="flex justify-between items-start mb-8">
@@ -161,9 +200,8 @@ export default function Home({ setAiState }: HomeProps) {
             </div>
         </div>
 
-        {/* Bottom: Dynamic Lists */}
         <div className="grid grid-cols-12 gap-8 min-h-0">
-            <div className="col-span-4 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-2xl p-6 flex flex-col min-h-0 shadow-[0_4px_16px_-5px_rgba(0,0,0,0.05)]">
+            <div className="col-span-5 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-2xl p-6 flex flex-col min-h-0 shadow-[0_4px_16px_-5px_rgba(0,0,0,0.05)]">
                 <h3 className="text-[16px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)] mb-6">Issue</h3>
                 <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
                     {issues.map((item, idx) => (
@@ -180,7 +218,7 @@ export default function Home({ setAiState }: HomeProps) {
                 </div>
             </div>
 
-            <div className="col-span-8 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-2xl p-6 flex flex-col min-h-0 shadow-[0_2px_15px_-5px_rgba(0,0,0,0.05)]">
+            <div className="col-span-7 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-2xl p-6 flex flex-col min-h-0 shadow-[0_2px_15px_-5px_rgba(0,0,0,0.05)]">
                 <div className="flex justify-between items-center mb-6">
                     <div className="flex items-center gap-3">
                         <div className="px-2 py-1 bg-[var(--text-main)] text-[var(--bg-main)] text-[16px] font-black uppercase tracking-widest rounded">Tasking</div>
