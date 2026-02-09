@@ -16,6 +16,8 @@ import { ChatLog } from './chatLog.schema';
 import { VectorDoc } from './vectorDoc.schema';
 import { ChatSession } from './chatSession.schema';
 import { Settings } from 'src/setting/setting.schema';
+import { SettingService } from 'src/setting/setting.service';
+import { Note } from 'src/note/note.schema';
 
 @Injectable()
 export class AiService {
@@ -26,10 +28,12 @@ export class AiService {
 
   constructor(
     private todoService: TodoService,
+    private settingService: SettingService,
     @InjectModel(ChatLog.name) private chatLogModel: Model<ChatLog>,
     @InjectModel(ChatSession.name) private chatSessionModel: Model<ChatSession>,
     @InjectModel(VectorDoc.name) private vectorDocModel: Model<VectorDoc>,
     @InjectModel(Settings.name) private settingsModel: Model<Settings>,
+    @InjectModel(Note.name) private noteModel: Model<Note>,
   ) {
     this.model = new ChatOpenAI({
       modelName: 'gpt-3.5-turbo',
@@ -79,6 +83,76 @@ export class AiService {
       return response.content as string;
     } catch (e) {
       return "새로운 대화";
+    }
+  }
+
+  private async classifyIntent(message: string): Promise<'NOTE' | 'FILE' | 'GENERAL'> {
+    try {
+      const classifierModel = new ChatOpenAI({
+        modelName: 'gpt-4o-mini',
+        temperature: 0,
+        openAIApiKey: process.env.OPENAI_API_KEY,
+      });
+
+      const systemPrompt = `
+        너는 사용자의 질문 의도를 분류하는 라우터(Router)야.
+        다음 기준에 따라 셋 중 하나만 딱 출력해 (따옴표 없이):
+        
+        1. NOTE: 사용자가 자신의 과거 기록, 메모, 일기, 생각, 아이디어 등 "개인적인 기억"에 대해 물을 때. (예: "나 저번에 무슨 아이디어 냈지?", "일기장 내용 알려줘")
+        2. FILE: 사용자가 업로드했던 문서, 매뉴얼, 전공 서적, 학습 자료 등 "외부 지식 파일"에 대해 물을 때. (예: "이 문서 요약해줘", "매뉴얼에서 에러 코드 찾아줘")
+        3. GENERAL: 단순 인사, 날씨, 일반적인 지식 질문, 할 일 추가 요청 등 검색이 필요 없는 경우.
+      `;
+
+      const response = await classifierModel.invoke([
+        new SystemMessage(systemPrompt),
+        new HumanMessage(message),
+      ]);
+
+      const intent = response.content.toString().trim().toUpperCase();
+      
+      if (['NOTE', 'FILE'].includes(intent)) {
+        return intent as 'NOTE' | 'FILE';
+      }
+      return 'GENERAL';
+    } catch (e) {
+      return 'GENERAL';
+    }
+  }
+
+  async searchNotes(query: string): Promise<string> {
+    try {
+      const queryEmbedding = await this.embeddings.embedQuery(query);
+
+      const results = await this.noteModel.aggregate([
+        {
+          $vectorSearch: {
+            index: "vector_index",
+            path: "embedding",
+            queryVector: queryEmbedding,
+            numCandidates: 100,
+            limit: 3
+          }
+        },
+        {
+          $project: {
+            title: 1,
+            content: 1,
+            tags: 1,
+            createdAt: 1,
+            score: { $meta: "vectorSearchScore" }
+          }
+        }
+      ]);
+
+      if (results.length === 0) return "";
+
+      return results.map(note => 
+        `[기억/메모: ${note.title || '제목 없음'}] (${new Date(note.createdAt).toLocaleDateString()})\n태그: ${note.tags.join(', ')}\n내용: ${note.content}`
+      ).join("\n\n");
+
+    } catch (e) {
+      console.error("Note Search Error:", e);
+      return "";
     }
   }
 
@@ -148,20 +222,6 @@ export class AiService {
     };
   }
 
-  async getSettings() {
-    let settings = await this.settingsModel.findOne();
-    if (!settings) {
-      settings = await this.settingsModel.create({});
-    }
-    return settings;
-  }
-
-  async updateSettings(data: Partial<Settings>) {
-    const settings = await this.getSettings();
-    Object.assign(settings, data);
-    return settings.save();
-  }
-
   async chat(message: string, sessionId: string, directContext?: string) {
     const logs: { level: string; message: string }[] = [];
     logs.push({ level: 'INFO', message: `User Input: "${message}"` });
@@ -205,36 +265,38 @@ export class AiService {
         ragContext = `[★긴급: 사용자가 방금 업로드한 파일 내용]:\n${directContext}\n\n(위 내용은 사용자가 방금 업로드한 문서입니다. 사용자의 질문이 '요약', '정리', '분석'이라면 무조건 이 내용을 바탕으로 답변하고, 절대 할 일로 등록하지 마세요.)`;
         logs.push({ level: 'SUCCESS', message: 'Using direct file context.' });
     } else {
+        const intent = await this.classifyIntent(message);
+        logs.push({ level: 'INFO', message: `Intent Classified: ${intent}` });
+
         try {
-            let results = await this.vectorStore.similaritySearch(message, 5);
-            
-            if (results.length === 0) {
-              const recentDocs = await this.vectorDocModel
-                .find({ 'metadata.sessionId': sessionId })
-                .sort({ 'metadata.uploadedAt': -1 }) 
-                .limit(5);
+            if (intent === 'NOTE') {
+                const noteResult = await this.searchNotes(message);
+                if (noteResult) {
+                    ragContext = `=== 🧠 사용자 기억/메모 (User Notes) ===\n${noteResult}`;
+                    logs.push({ level: 'SUCCESS', message: `RAG: Searched Notes.` });
+                } else {
+                    ragContext = "관련된 노트(기억)를 찾을 수 없습니다.";
+                }
+            } 
+            else if (intent === 'FILE') {
+                const fileResults = await this.vectorStore.similaritySearch(message, 3);
+                
+                if (fileResults.length > 0) {
+                    const fileContext = fileResults.map(doc => `[참고 파일 (${doc.metadata?.filename || '문서'})]:\n${doc.pageContent}`).join("\n\n");
+                    ragContext = `=== 📁 업로드된 파일 자료 (Uploaded Files) ===\n${fileContext}`;
+                    logs.push({ level: 'SUCCESS', message: `RAG: Found ${fileResults.length} relevant file chunks.` });
 
-              if (recentDocs.length > 0) {
-                results = recentDocs.map(d => ({
-                   pageContent: d.content,
-                   metadata: d.metadata
-                })) as any;
-                logs.push({ level: 'WARNING', message: `Search failed. Fallback to latest ${recentDocs.length} docs.` });
-              }
-            }
-
-            if (results.length > 0) {
-                ragContext = results.map(doc => `[참고 자료 (${doc.metadata?.filename || '문서'})]:\n${doc.pageContent}`).join("\n\n");
-                logs.push({ level: 'SUCCESS', message: `RAG: Found ${results.length} relevant chunks.` });
-
-                sources = results.map(doc => ({
-                    filename: doc.metadata?.filename || 'Unknown Source',
-                    content: doc.pageContent.slice(0, 200) + '...', 
-                    page: doc.metadata?.page,
-                    score: 0 
-                }));
+                    sources = fileResults.map(doc => ({
+                        filename: doc.metadata?.filename || 'Unknown Source',
+                        content: doc.pageContent.slice(0, 200) + '...', 
+                        page: doc.metadata?.page,
+                        score: 0 
+                    }));
+                } else {
+                    ragContext = "관련된 파일을 찾을 수 없습니다.";
+                }
             } else {
-                ragContext = "관련된 저장 문서가 없습니다.";
+                logs.push({ level: 'INFO', message: `Skipping Search (General Conversation)` });
             }
         } catch (e) { 
             console.error(e);
@@ -290,7 +352,7 @@ export class AiService {
       },
     ];
 
-    const settings = await this.getSettings();
+    const settings = await this.settingService.getSettings();
     const userName = settings.username || 'User';
 
     try {
@@ -305,7 +367,7 @@ export class AiService {
         - 날짜: ${this.getTodayStr()}
         - 할 일 목록: 
         ${todoContext}
-        - 참고 자료(RAG): 
+        - 참고 자료 (기억/메모 및 파일): 
         ${ragContext}
 
         [★최우선 명령★]

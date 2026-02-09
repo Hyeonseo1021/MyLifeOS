@@ -6,7 +6,7 @@ export class Note extends Document {
   @Prop() 
   title: string;
 
-  @Prop({ required: true })
+  @Prop({ default: '' })
   content: string; 
 
   @Prop({ type: [String], default: [] })

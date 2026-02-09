@@ -1,25 +1,20 @@
-// src/api/todo.ts
-import client from './client';
-import type { TodoItem, CreateTodoDto } from '../types';
+import { apiClient } from './client'; 
+import type { TodoItem, CreateTodoDto } from '../types'; 
 
 export const todoApi = {
-  // get all todos
-  getAll: () => client<TodoItem[]>('/todos'),
+  getAll: async () => {
+    return await apiClient.get<TodoItem[]>('/todos');
+  },
 
-  // create todo
-  create: (data: CreateTodoDto) => client<TodoItem>('/todos', { 
-    method: 'POST', 
-    data 
-  }),
+  create: async (data: CreateTodoDto) => {
+    return await apiClient.post<TodoItem>('/todos', data);
+  },
 
-  // change todo
-  update: (id: string, done: boolean) => client<void>(`/todos/${id}`, { 
-    method: 'PATCH', 
-    data: { done } 
-  }),
+  update: async (id: string, done: boolean) => {
+    return await apiClient.patch<void>(`/todos/${id}`, { done });
+  },
 
-  // delete todo
-  delete: (id: string) => client<void>(`/todos/${id}`, { 
-    method: 'DELETE' 
-  }),
+  delete: async (id: string) => {
+    return await apiClient.delete<void>(`/todos/${id}`);
+  },
 };

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import ChatInterface from '../components/ChatInterface';
 import ContextViewer, { type SourceItem } from '../components/ContextViewer'; 
-import { aiApi, type ChatSessionData } from '../api/ai';
+import { aiApi } from '../api/ai';
+import type { ChatSessionData } from '../api/types';
 import type { LogEntry } from '../types'; 
 
 export default function Mlo() {
