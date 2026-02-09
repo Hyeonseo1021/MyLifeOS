@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import axios from 'axios';
+import { settingApi } from '../api/setting';
 
 type Theme = 'dark' | 'light' | 'system';
 
@@ -12,16 +12,19 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('dark');
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await axios.get('/api/ai/settings');
-        if (response.data && response.data.theme) {
-          setTheme(response.data.theme as Theme);
+        const data = await settingApi.getSettings();
+        if (data && data.theme) {
+          setTheme(data.theme as Theme);
         }
       } catch (error) {
         console.error(error);
+      } finally {
+        setIsReady(true);
       }
     };
     fetchSettings();
@@ -38,8 +41,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     root.classList.add(effectiveTheme);
     
-    axios.patch('/api/ai/settings', { theme }).catch(() => {});
-  }, [theme]);
+    if (isReady) {
+      settingApi.updateSettings({ theme }).catch(() => {});
+    }
+  }, [theme, isReady]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>

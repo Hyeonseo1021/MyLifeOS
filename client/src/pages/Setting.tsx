@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Monitor, Globe, User, Check, Save } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { settingApi } from '../api/setting';
 
 interface GeneralSettings {
   username: string;
@@ -18,6 +19,25 @@ export default function Settings() {
 
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const data = await settingApi.getSettings();
+        if (data) {
+          setSettings({
+            username: data.username || '',
+            theme: data.theme || 'dark',
+            language: data.language || 'ko'
+          });
+          if (data.theme) setTheme(data.theme as any);
+        }
+      } catch (e) {
+        console.error("Failed to load settings:", e);
+      }
+    };
+    loadSettings();
+  }, [setTheme]);
+
   const updateSetting = <K extends keyof GeneralSettings>(key: K, value: GeneralSettings[K]) => {
     setSettings(prev => ({ ...prev, [key]: value }));
     if (key === 'theme') {
@@ -25,9 +45,16 @@ export default function Settings() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => setIsSaving(false), 800);
+    try {
+      await settingApi.updateSettings(settings);
+      setTimeout(() => setIsSaving(false), 800);
+    } catch (e) {
+      console.error("Failed to save settings:", e);
+      alert("설정 저장에 실패했습니다.");
+      setIsSaving(false);
+    }
   };
 
   const noDrag = { WebkitAppRegion: 'no-drag' } as any;
@@ -45,7 +72,6 @@ export default function Settings() {
       <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto scrollbar-thin">
         <div className="w-full max-w-xl flex flex-col gap-10 animate-fadeIn z-10">
           
-          {/* Header */}
           <div className="text-center space-y-2">
             <h1 className="text-3xl md:text-4xl font-black tracking-[0.3em] text-[var(--text-main)] uppercase">
               SETTING
@@ -55,10 +81,8 @@ export default function Settings() {
             </p>
           </div>
 
-          {/* Form Area */}
           <div className="flex flex-col gap-8 border-t border-b border-[var(--border-main)] py-12">
             
-            {/* 1. User Alias */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
               <div className="md:col-span-4 pt-3">
                 <div className="flex items-center gap-2 text-[var(--text-muted)]">
@@ -77,7 +101,6 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* 2. Appearance */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
               <div className="md:col-span-4 pt-3">
                 <div className="flex items-center gap-2 text-[var(--text-muted)]">
@@ -104,7 +127,6 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* 3. Language */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
               <div className="md:col-span-4 pt-3">
                 <div className="flex items-center gap-2 text-[var(--text-muted)]">
@@ -130,7 +152,6 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Save Button */}
           <div className="flex justify-center">
             <button
               onClick={handleSave}

@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, type KeyboardEvent, type MouseEvent } from 'react';
-import { api } from '../api'; 
+import { todoApi } from '../api/todo';
+import { weatherApi } from '../api/weather';
+import { aiApi } from '../api/ai';
 import InteractiveCalendar from '../components/InteractiveCalendar';
 import { useAiSystem } from '../hooks/useAiSystem';
 import { useNotification } from '../hooks/useNotification';
 import { getYMD, formatTime, formatDate } from '../utils/date';
-import type { WeatherData } from '../api/weather';
+import type { WeatherData } from '../types';
 import type { TodoItem, AiState, IssueItem } from '../types';
 
 interface HomeProps {
@@ -28,7 +30,7 @@ export default function Home({ setAiState }: HomeProps) {
 
     const syncData = async () => {
       try {
-        const data = await api.todo.getAll();
+        const data = await todoApi.getAll();
         setTodos(data);
       } catch(e) {}
     };
@@ -71,11 +73,11 @@ export default function Home({ setAiState }: HomeProps) {
     navigator.geolocation.getCurrentPosition(
       async (p) => {
         try {
-          const data = await api.weather.get(p.coords.latitude, p.coords.longitude);
+          const data = await weatherApi.get(p.coords.latitude, p.coords.longitude);
           setWeather(data);
         } catch(e) {}
       },
-      () => api.weather.get(37.5665, 126.9780).then(setWeather).catch()
+      () => weatherApi.get(37.5665, 126.9780).then(setWeather).catch()
     );
   }, []);
 
@@ -84,7 +86,7 @@ export default function Home({ setAiState }: HomeProps) {
   useEffect(() => {
     const fetchIssues = async () => {
       try {
-        const data = await api.ai.getIssues();
+        const data = await aiApi.getIssues();
         setIssues(data);
       } catch (error) { console.error(error); }
     };
@@ -93,7 +95,7 @@ export default function Home({ setAiState }: HomeProps) {
 
   const loadTodos = async () => {
     try {
-      const data = await api.todo.getAll();
+      const data = await todoApi.getAll();
       setTodos(data);
     } catch (error) { console.error(error); }
   };
@@ -107,7 +109,7 @@ export default function Home({ setAiState }: HomeProps) {
     setTodos(prev => [...prev, optimisticTodo]);
     setInput('');
     try {
-        const newTodo = await api.todo.create({ text, done: false, date: dateStr });
+        const newTodo = await todoApi.create({ text, done: false, date: dateStr });
         setTodos(prev => prev.map(t => t._id === tempId ? newTodo : t));
     } catch (error) { setTodos(prev => prev.filter(t => t._id !== tempId)); }
   };
@@ -121,13 +123,13 @@ export default function Home({ setAiState }: HomeProps) {
     e.stopPropagation(); 
     const originalTodos = [...todos];
     setTodos(todos.filter(t => t._id !== id));
-    try { await api.todo.delete(id); } catch (error) { setTodos(originalTodos); }
+    try { await todoApi.delete(id); } catch (error) { setTodos(originalTodos); }
   };
 
   const toggleTodo = async (id: string, currentDone: boolean) => {
     const original = [...todos];
     setTodos(todos.map(t => t._id === id ? { ...t, done: !currentDone } : t));
-    try { await api.todo.update(id, !currentDone); } catch { setTodos(original); }
+    try { await todoApi.update(id, !currentDone); } catch { setTodos(original); }
   };
 
   const filteredTodos = todos.filter(todo => todo.date === getYMD(selectedDate));

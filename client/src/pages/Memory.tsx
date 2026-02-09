@@ -1,13 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { aiApi } from '../api/ai';
-
-interface NoteItem {
-  _id: string;
-  title?: string;
-  content: string;
-  tags: string[];
-  createdAt: string;
-}
+import { noteApi } from '../api/notes';
+import type { NoteItem } from '../api/types';
 
 export default function Memory() {
   const [notes, setNotes] = useState<NoteItem[]>([]);
@@ -19,7 +12,7 @@ export default function Memory() {
 
   const fetchNotes = async () => {
     try {
-      const data = await aiApi.getNotes();
+      const data = await noteApi.getNotes();
       setNotes(data || []);
     } catch (e) {
       console.error(e);
@@ -82,8 +75,13 @@ export default function Memory() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('정말 삭제하시겠습니까?')) return;
-    await aiApi.deleteNote(id);
-    handleBack();
+    try {
+      await noteApi.deleteNote(id);
+      handleBack();
+    } catch (e) {
+      console.error(e);
+      alert('Failed to delete.');
+    }
   };
 
   const noDrag = { WebkitAppRegion: 'no-drag' } as any;
@@ -168,7 +166,7 @@ export default function Memory() {
                            </span>
                         )}
                         <span className="block text-[8px] text-[var(--text-muted)] font-mono opacity-60">
-                          {new Date(note.createdAt).toLocaleDateString()}
+                          {new Date(note.createdAt || Date.now()).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
@@ -206,7 +204,7 @@ export default function Memory() {
                  </h1>
                  <div className="flex flex-col gap-2 items-center">
                    <span className="text-xs text-[var(--text-muted)] tracking-widest uppercase font-bold opacity-60">
-                     RECORDED ON {new Date(selectedNote.createdAt).toLocaleDateString()}
+                     RECORDED ON {new Date(selectedNote.createdAt || Date.now()).toLocaleDateString()}
                    </span>
                    {selectedNote.tags && selectedNote.tags.length > 0 && (
                       <div className="flex gap-2 mt-2">
@@ -267,6 +265,8 @@ function NoteEditor({ onSave, initialData }: { onSave: () => void, initialData?:
   const [title, setTitle] = useState(initialData?.title || '');
   const [content, setContent] = useState(initialData?.content || '');
   const [tags, setTags] = useState(initialData?.tags ? initialData.tags.join(' ') : '');
+  
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -283,21 +283,29 @@ function NoteEditor({ onSave, initialData }: { onSave: () => void, initialData?:
   const inputStyle = { WebkitAppRegion: 'no-drag', userSelect: 'text', cursor: 'text' } as any;
 
   const handleSave = async () => {
-    if (!content.trim()) return;
+    if (!title.trim() && !content.trim()) {
+        alert("내용을 입력해주세요.");
+        return;
+    }
     
+    if (isSaving) return;
+
     const processedTags = tags.split(' ').map((t) => t.trim()).filter(Boolean);
     const finalTags = processedTags.length > 0 ? processedTags : ['Note'];
 
     try {
+      setIsSaving(true);
+      
       if (initialData) {
-        await (aiApi as any).updateNote(initialData._id, title, content, finalTags);
+        await noteApi.updateNote(initialData._id, title, content, finalTags);
       } else {
-        await aiApi.createNote(title, content, finalTags);
+        await noteApi.createNote(title, content, finalTags);
       }
       onSave();
     } catch (e) {
       console.error(e);
       alert('Failed to save.');
+      setIsSaving(false);
     }
   };
 
@@ -312,6 +320,7 @@ function NoteEditor({ onSave, initialData }: { onSave: () => void, initialData?:
           placeholder="Enter title..."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          disabled={isSaving}
         />
       </div>
 
@@ -323,6 +332,7 @@ function NoteEditor({ onSave, initialData }: { onSave: () => void, initialData?:
           placeholder="Write your thoughts..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
+          disabled={isSaving}
         />
       </div>
 
@@ -335,14 +345,18 @@ function NoteEditor({ onSave, initialData }: { onSave: () => void, initialData?:
             placeholder="e.g. idea diary project"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
+            disabled={isSaving}
           />
         </div>
         <button
           onClick={handleSave}
-          style={{ WebkitAppRegion: 'no-drag', cursor: 'pointer' } as any}
-          className="bg-[var(--text-main)] text-[var(--bg-main)] px-8 py-3 text-xs font-black uppercase tracking-widest hover:opacity-80 transition-all shadow-md ml-6 rounded-sm"
+          disabled={isSaving}
+          style={{ WebkitAppRegion: 'no-drag', cursor: isSaving ? 'wait' : 'pointer' } as any}
+          className={`bg-[var(--text-main)] text-[var(--bg-main)] px-8 py-3 text-xs font-black uppercase tracking-widest transition-all shadow-md ml-6 rounded-sm ${
+            isSaving ? 'opacity-50' : 'hover:opacity-80'
+          }`}
         >
-          Save
+          {isSaving ? 'SAVING...' : 'SAVE'}
         </button>
       </div>
     </div>

@@ -1,100 +1,40 @@
-import axios from 'axios';
-
-export interface ChatSessionData {
-    sessionId: string;
-    title: string;
-    updatedAt: string;
-}
-
-export interface ChatResponse {
-  reply: string;
-  logs: any[];
-  title?: string;
-  sources?: {        
-    filename: string;
-    content: string;
-    page?: number;
-    score?: number;
-  }[];
-}
-
-const BASE_URL = 'http://localhost:3000'; 
+import { apiClient, fileApiClient } from './client';
+import type { ChatResponse, ChatSessionData, SourceItem} from './types';
 
 export const aiApi = {
   generateBriefing: async (weather: any, todos: any[]) => {
-    const response = await axios.post<{ briefing: string }>(`${BASE_URL}/ai/briefing`, { weather, todos });
-    return response.data; 
+    return await apiClient.post<{ briefing: string }>('/ai/briefing', { weather, todos });
   },
 
   getIssues: async () => {
-    const response = await axios.get<any[]>(`${BASE_URL}/ai/issue`);
-    return response.data;
+    return await apiClient.get<any[]>('/ai/issue');
   },
 
   chat: async (message: string, sessionId: string) => {
-    const response = await axios.post<ChatResponse>(`${BASE_URL}/ai/chat`, { message, sessionId });
-    return response.data;
+    return await apiClient.post<ChatResponse>('/ai/chat', { message, sessionId });
   },
 
   chatWithFile: async (formData: FormData) => {
-    const response = await axios.post<ChatResponse>(`${BASE_URL}/ai/chat/file`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return response.data;
+    return await fileApiClient.post<ChatResponse>('/ai/chat/file', formData);
   },
 
   getHistory: async (sessionId: string) => {
-    const response = await axios.get(`${BASE_URL}/ai/history?sessionId=${sessionId}`);
-    return response.data; 
+    return await apiClient.get(`/ai/history?sessionId=${sessionId}`);
   },
 
   getSessions: async () => {
-    const response = await axios.get<ChatSessionData[]>(`${BASE_URL}/ai/sessions`);
-    return response.data;
+    return await apiClient.get<ChatSessionData[]>('/ai/sessions');
   },
 
   getContextFiles: async (sessionId: string) => {
-    const response = await axios.get(`${BASE_URL}/ai/context/${sessionId}`);
-    return response.data; 
+    return await apiClient.get<SourceItem[]>(`/ai/context/${sessionId}`);
   },
 
   clearHistory: async (sessionId: string) => {
-    const response = await axios.delete(`${BASE_URL}/ai/history?sessionId=${sessionId}`);
-    return response.data;
+    return await apiClient.delete(`/ai/history?sessionId=${sessionId}`);
   },
 
   deleteSession: async (sessionId: string) => {
-    const response = await axios.delete(`${BASE_URL}/ai/history?sessionId=${sessionId}`);
-    return response.data;
+    return await apiClient.delete(`/ai/history?sessionId=${sessionId}`);
   },
-
-  getNotes: async () => {
-    const response = await axios.get(`${BASE_URL}/ai/notes`);
-    return response.data;
-  },
-
-  createNote: async (title: string, content: string, tags: string[]) => {
-    const response = await axios.post(`${BASE_URL}/ai/notes`, { title, content, tags });
-    return response.data;
-  },
-
-  updateNote: async (id: string, title: string, content: string, tags: string[]) => {
-    const response = await axios.put(`${BASE_URL}/ai/notes/${id}`, { title, content, tags });
-    return response.data;
-  },
-
-  deleteNote: async (id: string) => {
-    const response = await axios.delete(`${BASE_URL}/ai/notes/${id}`);
-    return response.data;
-  },
-
-  getSettings: async () => {
-    const response = await axios.get(`${BASE_URL}/ai/settings`);
-    return response.data;
-  },
-
-  updateSettings: async (settings: any) => {
-    const response = await axios.post(`${BASE_URL}/ai/settings`, settings);
-    return response.data;
-  }
 };
