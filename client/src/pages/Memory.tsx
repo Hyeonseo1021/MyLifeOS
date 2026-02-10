@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { noteApi } from '../api/notes';
 import type { NoteItem } from '../api/types';
+import Editor from '../components/Editor'; 
 
 export default function Memory() {
   const [notes, setNotes] = useState<NoteItem[]>([]);
@@ -181,7 +182,7 @@ export default function Memory() {
       {(viewMode === 'write' || viewMode === 'edit') && (
         <div className="absolute inset-0 z-[100] bg-[var(--bg-main)] flex flex-col animate-fadeIn">
           <TopBar onBack={handleBack} />
-          <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 scrollbar-thin">
+          <div className="flex-1 overflow-hidden">
             <NoteEditor 
               onSave={handleBack} 
               initialData={viewMode === 'edit' ? selectedNote : null}
@@ -196,7 +197,7 @@ export default function Memory() {
           <TopBar onBack={handleBack} />
           
           <div className="flex-1 overflow-y-auto px-6 md:px-20 py-12 scrollbar-thin">
-            <div className="max-w-3xl mx-auto flex flex-col gap-10 min-h-[80vh]">
+            <div className="max-w-4xl mx-auto flex flex-col gap-10 min-h-[80vh]">
               
               <div className="flex flex-col gap-4 text-center pb-8 border-b border-[var(--border-main)]">
                  <h1 className="text-3xl md:text-5xl font-black text-[var(--text-main)] leading-tight break-keep tracking-tight">
@@ -204,7 +205,7 @@ export default function Memory() {
                  </h1>
                  <div className="flex flex-col gap-2 items-center">
                    <span className="text-xs text-[var(--text-muted)] tracking-widest uppercase font-bold opacity-60">
-                     RECORDED ON {new Date(selectedNote.createdAt || Date.now()).toLocaleDateString()}
+                    {new Date(selectedNote.createdAt || Date.now()).toLocaleDateString()}
                    </span>
                    {selectedNote.tags && selectedNote.tags.length > 0 && (
                       <div className="flex gap-2 mt-2">
@@ -218,8 +219,15 @@ export default function Memory() {
                  </div>
               </div>
 
-              <div className="text-lg text-[var(--text-main)] leading-loose whitespace-pre-wrap text-justify font-serif">
-                {selectedNote.content}
+              {/* [수정됨] dangerouslySetInnerHTML 대신 Editor를 읽기 전용으로 사용 */}
+              <div className="flex-1 -ml-1 text-[var(--text-main)] pointer-events-none"> 
+                 {/* pointer-events-none을 주면 클릭 등이 안 되게 완전 봉인되지만, 
+                     체크박스 클릭 등을 허용하고 싶다면 pointer-events-auto로 두세요. */}
+                 <Editor
+                   initialContent={selectedNote.content}
+                   onChange={() => {}} // 읽기 전용이라 핸들러 필요 없음
+                   editable={false} // [핵심] 수정 불가 모드
+                 />
               </div>
 
               <div className="mt-auto pt-12 flex justify-end gap-6 border-t border-[var(--border-main)]">
@@ -310,39 +318,33 @@ function NoteEditor({ onSave, initialData }: { onSave: () => void, initialData?:
   };
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-3xl mx-auto p-4 md:p-12">
-      <div className="flex flex-col gap-3">
-        <label className="text-xs text-[var(--text-muted)] font-black tracking-widest uppercase opacity-70">Title</label>
+    <div className="flex flex-col h-full w-full max-w-4xl mx-auto px-6 md:px-12 pt-6 relative">
+      <div className="shrink-0 mb-8">
         <input
           autoFocus
           style={inputStyle}
-          className="block w-full bg-transparent p-4 rounded-sm text-2xl md:text-3xl font-bold text-[var(--text-main)] outline-none placeholder-[var(--text-muted)] border-b-2 border-[var(--border-main)] focus:border-[var(--text-main)] focus:bg-[var(--bg-card)] transition-all"
-          placeholder="Enter title..."
+          className="block w-full bg-transparent text-3xl md:text-5xl font-black text-[var(--text-main)] outline-none placeholder-[var(--text-muted)] placeholder-opacity-40 transition-all leading-tight"
+          placeholder="Untitled"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           disabled={isSaving}
         />
       </div>
 
-      <div className="flex flex-col gap-3 flex-1">
-        <label className="text-xs text-[var(--text-muted)] font-black tracking-widest uppercase opacity-70">Content</label>
-        <textarea
-          style={inputStyle}
-          className="block w-full min-h-[50vh] bg-[var(--bg-card)] p-6 rounded-sm text-lg text-[var(--text-main)] outline-none resize-none placeholder-[var(--text-muted)] leading-loose border border-[var(--border-main)] focus:border-[var(--text-main)] transition-all font-serif"
-          placeholder="Write your thoughts..."
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          disabled={isSaving}
-        />
+      <div className="flex-1 -ml-1 overflow-hidden">
+          <Editor 
+              initialContent={initialData?.content || ''}
+              onChange={(html) => setContent(html)}
+          />
       </div>
 
-      <div className="flex items-end justify-between pt-8 border-t border-[var(--border-main)]">
-        <div className="flex flex-col gap-3 w-full max-w-[350px]">
-          <label className="text-xs text-[var(--text-muted)] font-black tracking-widest uppercase opacity-70">Tags (Space separated)</label>
+      <div className="shrink-0 pt-8 pb-8 mt-4 border-t border-[var(--border-main)] flex items-end justify-between bg-[var(--bg-main)] z-10">
+        <div className="flex flex-col gap-2 w-full max-w-[350px]">
+          <label className="text-[10px] text-[var(--text-muted)] font-bold tracking-widest uppercase opacity-50">Tags</label>
           <input
             style={inputStyle}
-            className="bg-[var(--bg-card)] px-4 py-3 rounded-sm text-sm text-[var(--text-main)] outline-none placeholder-[var(--text-muted)] w-full border border-[var(--border-main)] focus:border-[var(--text-main)] transition-all"
-            placeholder="e.g. idea diary project"
+            className="bg-transparent py-2 text-sm text-[var(--text-main)] outline-none placeholder-[var(--text-muted)] w-full border-b border-[var(--border-main)] focus:border-[var(--text-main)] transition-all"
+            placeholder="Add tags..."
             value={tags}
             onChange={(e) => setTags(e.target.value)}
             disabled={isSaving}
