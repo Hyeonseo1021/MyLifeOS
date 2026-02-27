@@ -31,8 +31,15 @@ function AppContent() {
 
       <div className="flex-1 flex flex-col bg-transparent relative overflow-hidden non-draggable">
         <div className="absolute top-4 right-4 z-50 flex gap-2 group">
-           <div className="w-3 h-3 rounded-full bg-neutral-400/50 hover:bg-red-500 transition-colors cursor-pointer non-draggable shadow-sm"></div>
-           <div className="w-3 h-3 rounded-full bg-neutral-400/50 hover:bg-yellow-500 transition-colors cursor-pointer non-draggable shadow-sm"></div>
+          <div 
+            onClick={() => (window as any).electron.minimize()}
+            className="w-3 h-3 rounded-full bg-neutral-400/50 hover:bg-yellow-500 transition-colors cursor-pointer non-draggable shadow-sm"
+          ></div>
+
+          <div 
+            onClick={() => (window as any).electron.close()}
+            className="w-3 h-3 rounded-full bg-neutral-400/50 hover:bg-red-500 transition-colors cursor-pointer non-draggable shadow-sm"
+          ></div>
         </div>
 
         {activeTab === 'HOME' && <Home setAiState={setAiState} />}
