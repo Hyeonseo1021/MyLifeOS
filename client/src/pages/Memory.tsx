@@ -219,14 +219,11 @@ export default function Memory() {
                  </div>
               </div>
 
-              {/* [수정됨] dangerouslySetInnerHTML 대신 Editor를 읽기 전용으로 사용 */}
               <div className="flex-1 -ml-1 text-[var(--text-main)] pointer-events-none"> 
-                 {/* pointer-events-none을 주면 클릭 등이 안 되게 완전 봉인되지만, 
-                     체크박스 클릭 등을 허용하고 싶다면 pointer-events-auto로 두세요. */}
                  <Editor
                    initialContent={selectedNote.content}
-                   onChange={() => {}} // 읽기 전용이라 핸들러 필요 없음
-                   editable={false} // [핵심] 수정 불가 모드
+                   onChange={() => {}} 
+                   editable={false} 
                  />
               </div>
 
