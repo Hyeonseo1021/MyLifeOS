@@ -1,4 +1,4 @@
-# Project REMEMBER: My Life OS
+# My Life OS
 
 > **"Your personalized, always-on AI executive assistant."**
 
