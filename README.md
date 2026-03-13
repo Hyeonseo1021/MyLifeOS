@@ -1,4 +1,4 @@
-# My Life OS (Project REMEMBER)
+# My Life OS 
 
 > **"Your personalized, always-on executive assistant."**
 
@@ -6,36 +6,33 @@
 
 Unlike traditional productivity apps, this system resides on the desktop as a persistent "Cockpit." It offers real-time context and AI-driven insights to keep you focused, essentially acting as a personal Jarvis.
 
-![Dashboard Screenshot](https://via.placeholder.com/800x450?text=Project+Screenshot+Placeholder)
-*(Replace this link with an actual screenshot)*
-
 ---
 
-## ✨ Key Features
+## Features
 
-### 🖥️ Executive Dashboard (The Cockpit)
+### Executive Dashboard (The Cockpit)
 - **Bento Grid Layout:** A highly organized, single-view interface for maximum efficiency.
 - **Real-time Context:** Live clock (seconds precision) and local weather updates.
 - **AI Briefing Core:** Natural language summaries of your current status ("Executive Briefing").
 - **Trend Tracking:** A "Daily Issues" module to keep up with IT trends and news.
 
-### 🧠 AI Interaction & RAG
+### AI Interaction & RAG
 - **Visual AI Core:** A responsive, animated orb that visualizes the AI's state (Idle, Processing, Speaking).
 - **Context-Aware Chat:** Seamless switching between command execution and conversation. The AI uses a RAG (Retrieval-Augmented Generation) pipeline to understand context from your past chats and notes.
 
-### 📝 Memory (Second Brain)
+### Memory (Second Brain)
 - **Notion-Style Editor:** A powerful block-based editor supporting rich text, lists, and formatting without the clutter. 
 - **Smart Tagging:** Archive and filter your notes quickly using a custom hashtag system.
 - **Distraction-Free UX:** Borderless, seamless writing experience built into the dark mode UI.
 
-### 🎨 Design & OS Integration
+### Design & OS Integration
 - **Monotone Aesthetic:** A sleek, dark-mode-only design to reduce eye strain and maintain focus.
 - **Frameless Window:** Custom drag-and-drop controls with a non-standard, futuristic window frame.
 - **System Deep Dive:** Built with Electron for deep OS integration and local file system access.
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 Built with a modern, type-safe architecture.
 
